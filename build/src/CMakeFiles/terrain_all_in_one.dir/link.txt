@@ -1,0 +1,3 @@
+C:\msys64\mingw64\bin\cmake.exe -E rm -f CMakeFiles\terrain_all_in_one.dir/objects.a
+C:\msys64\mingw64\bin\ar.exe qc CMakeFiles\terrain_all_in_one.dir/objects.a @CMakeFiles\terrain_all_in_one.dir\objects1.rsp
+C:\msys64\mingw64\bin\g++.exe -g -Wl,--whole-archive CMakeFiles\terrain_all_in_one.dir/objects.a -Wl,--no-whole-archive -o ..\bin\terrain_all_in_one.exe -Wl,--out-implib,libterrain_all_in_one.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\terrain_all_in_one.dir\linkLibs.rsp
