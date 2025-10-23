@@ -5,7 +5,9 @@
 #else
 #include <unistd.h>	 // getcwd
 #endif
+#include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -17,11 +19,43 @@
 #include "ErosionParams.h"
 #include "HydraulicErosion.h"
 #include "PerlinNoise.h"
+#include "RiverGenerator.h"
 #include "Types.h"
 #include "WorldType_Voronoi.h"
 #include "json.hpp"
 
 using json = nlohmann::json;
+
+// Convert Grid2D<float> -> std::vector<float> (row-major)
+static std::vector<float> gridToVector(const Grid2D<float>& g) {
+	int W = g.width(), H = g.height();
+	std::vector<float> v((size_t)W * H);
+	for (int y = 0; y < H; ++y)
+		for (int x = 0; x < W; ++x) v[(size_t)y * W + x] = g(x, y);
+	return v;
+}
+
+// Convert std::vector<float> (row-major) -> Grid2D<float>
+static void vectorToGrid(const std::vector<float>& v, Grid2D<float>& g) {
+	int W = g.width(), H = g.height();
+	for (int y = 0; y < H; ++y)
+		for (int x = 0; x < W; ++x) g(x, y) = v[(size_t)y * W + x];
+}
+
+// Convert river mask (0/255 bytes) -> PPM rgb vector<unsigned char>
+static std::vector<unsigned char> maskToRGB(const std::vector<uint8_t>& mask, int W, int H) {
+	std::vector<unsigned char> out((size_t)W * H * 3);
+	for (int y = 0; y < H; ++y)
+		for (int x = 0; x < W; ++x) {
+			size_t i = (size_t)y * W + x;
+			unsigned char m = mask[i];
+			size_t idx = i * 3;
+			out[idx + 0] = m;
+			out[idx + 1] = m;
+			out[idx + 2] = m;
+		}
+	return out;
+}
 
 static bool writePPM(const std::string& path, int W, int H, const std::vector<unsigned char>& rgb) {
 	std::ofstream f(path, std::ios::binary);
@@ -98,30 +132,13 @@ static std::vector<unsigned char> biomeToRGB(const Grid2D<Biome>& g) {
 }
 
 int main(int argc, char** argv) {
-	// std::ifstream f("../../assets/config.json");
-	// if (!f) {
-	// 	std::cerr << "Missing config.json in working directory\n";
-	// 	return 1;
-	// }
-	// json cfg;
-	// f >> cfg;
-	// f.close();
-
 	// --- DEBUG: show working directory and config path (Windows-friendly) ---
 	char cwdBuf[4096];
-#ifdef _WIN32
 	if (_getcwd(cwdBuf, sizeof(cwdBuf)) != nullptr) {
 		std::cerr << "[DEBUG] CWD = " << cwdBuf << std::endl;
 	} else {
 		std::cerr << "[DEBUG] CWD unknown" << std::endl;
 	}
-#else
-	if (getcwd(cwdBuf, sizeof(cwdBuf)) != nullptr) {
-		std::cerr << "[DEBUG] CWD = " << cwdBuf << std::endl;
-	} else {
-		std::cerr << "[DEBUG] CWD unknown" << std::endl;
-	}
-#endif
 
 	std::string cfgRelPath = "../../assets/config.json";
 	std::filesystem::path absCfg = std::filesystem::absolute(cfgRelPath);
@@ -182,12 +199,6 @@ int main(int argc, char** argv) {
 		world.generate(height);
 		std::cerr << "[DEBUG] world.generate() returned OK" << std::endl;
 
-		// If we reach here, copy the locally created grids into variables used later
-		// (we used local vars above to isolate crashes inside their scope).
-		// move them to the names used later in the program
-		// NOTE: these variables shadow outer ones — if your later code expects the outer variables,
-		// you can instead keep the original declarations and remove the local ones. For now, we'll
-		// assign into pre-declared variables if they exist; otherwise adapt as needed.
 	} catch (const std::exception& e) {
 		std::cerr << "[EXCEPTION] during grid/world construction: " << e.what() << std::endl;
 		return 1;
@@ -197,36 +208,8 @@ int main(int argc, char** argv) {
 	}
 	// ---------- end precise debug block ----------
 
-	// int W = cfg.value("width", 512);
-	// int H = cfg.value("height", 512);
-	// uint32_t seed = cfg.value("seed", 424242u);
-
-	// // create grids
-	// Grid2D<float> height(W, H), temp(W, H), moist(W, H);
-	// Grid2D<uint8_t> rivers(W, H);
-	// Grid2D<Biome> biomeMap(W, H);
-
-	// // Voronoi world
-	// VoronoiConfig vcfg;
-	// vcfg.seed = seed;
-	// vcfg.numPlates = cfg.value("numPlates", 36);
-	// vcfg.fbmBlend = cfg.value("fbmBlend", 0.42f);
-	// vcfg.fbmFrequency = cfg.value("fbmFrequency", 0.0035f);
-	// vcfg.fbmOctaves = cfg.value("fbmOctaves", 5);
-
-	// WorldType_Voronoi world(W, H, vcfg);
-	// // world.generate(height);
-	// std::cerr << "[DEBUG] Starting Voronoi world.generate()" << std::endl;
-	// try {
-	// 	world.generate(height);
-	// } catch (const std::exception& e) {
-	// 	std::cerr << "[EXCEPTION] world.generate failed: " << e.what() << std::endl;
-	// 	return 1;
-	// }
-	// std::cerr << "[DEBUG] Finished Voronoi world.generate()" << std::endl;
-
 	// save height before erosion
-	system("mkdir -p out");
+	std::filesystem::create_directories("out");
 	auto hRGB_before = heightToRGB(height);
 	if (!writePPM("out/height_before_erosion.ppm", W, H, hRGB_before)) std::cerr << "Failed write out/height_before_erosion.ppm\n";
 
@@ -318,20 +301,72 @@ int main(int argc, char** argv) {
 	if (!writePPM("out/erosion_deposited.ppm", W, H, depositRGB)) std::cerr << "Failed write out/erosion_deposited.ppm\n";
 	if (!writePPM("out/height_after_erosion.ppm", W, H, hRGB_after)) std::cerr << "Failed write out/height_after_erosion.ppm\n";
 
-	// classify after erosion
-	bool ok = biome::classifyBiomeMap(height, temp, moist, nullptr, defs, biomeMap, opts);
-	if (!ok) {
-		std::cerr << "Classification failed (dimension mismatch)\n";
-		return 1;
+	// classify after erosion (pre-rivers) and save that snapshot
+	std::cerr << "[DEBUG] Classifying biome map AFTER hydraulic erosion (pre-rivers)" << std::endl;
+	bool ok_after_erosion = biome::classifyBiomeMap(height, temp, moist, nullptr, defs, biomeMap, opts);
+	if (!ok_after_erosion) {
+		std::cerr << "[ERROR] Classification failed after erosion (dimension mismatch)\n";
+	} else {
+		auto bRGB_after_erosion = biomeToRGB(biomeMap);
+		if (!writePPM("out/biome_after_erosion.ppm", W, H, bRGB_after_erosion)) std::cerr << "Failed write out/biome_after_erosion.ppm\n";
 	}
 
-	std::cerr << "[DEBUG] Saving outputs to out/ ..." << std::endl;
-	// write outputs as PPM (simple)
+	// -----------------------------
+	// River generation stage
+	// -----------------------------
+	std::cerr << "[DEBUG] Starting river generation stage" << std::endl;
+
+	// Convert Grid2D -> linear vector for RiverGenerator
+	std::vector<float> heightVec = gridToVector(height);
+
+	// set up river parameters (tune these to your map size)
+	RiverParams rparams;
+	rparams.flow_accum_threshold = (W >= 2048 ? 4000.0 : (W >= 1024 ? 1000.0 : 200.0));
+	rparams.min_channel_depth = 0.4;
+	rparams.max_channel_depth = 6.0;
+	rparams.width_multiplier = 0.002;  // scale of channel width (cells per sqrt(flow))
+	rparams.carve_iterations = 1;
+	rparams.bed_slope_reduction = 0.5;
+	rparams.wetland_accum_threshold = 500.0;
+	rparams.wetland_slope_max = 0.01;
+
+	RiverGenerator rg(W, H, heightVec);
+	rg.run(rparams);
+
+	// retrieve mask and updated heights
+	const std::vector<uint8_t>& riverMask = rg.getRiverMask();
+	const std::vector<float>& heightAfterRiversVec = rg.getHeightmap();
+
+	// write river mask to PPM (0/255)
+	auto riverMaskRGB = maskToRGB(riverMask, W, H);
+	if (!writePPM("out/river_map.ppm", W, H, riverMaskRGB)) std::cerr << "Failed to write out/river_map.ppm\n";
+
+	// update Grid2D height with carved results
+	vectorToGrid(heightAfterRiversVec, height);
+
+	// write updated heights after rivers
+	auto hRGB_after_rivers = heightToRGB(height);
+	if (!writePPM("out/height_after_rivers.ppm", W, H, hRGB_after_rivers)) std::cerr << "Failed to write out/height_after_rivers.ppm\n";
+
+	std::cerr << "[DEBUG] River generation finished; wrote out/river_map.ppm and out/height_after_rivers.ppm" << std::endl;
+
+	// --- classify & save biome map AFTER river carving ---
+	std::cerr << "[DEBUG] Classifying biome map AFTER river carving" << std::endl;
+	bool ok_after_rivers = biome::classifyBiomeMap(height, temp, moist, nullptr, defs, biomeMap, opts);
+	if (!ok_after_rivers) {
+		std::cerr << "[ERROR] Classification failed after rivers (dimension mismatch)\n";
+	} else {
+		auto bRGB_after_rivers = biomeToRGB(biomeMap);
+		if (!writePPM("out/biome_after_rivers.ppm", W, H, bRGB_after_rivers)) std::cerr << "Failed write out/biome_after_rivers.ppm\n";
+	}
+
+	std::cerr << "[DEBUG] Saving final outputs to out/ ..." << std::endl;
+	// write outputs as PPM (simple) - these now reflect the post-river state
 	auto hRGB = heightToRGB(height);
 	auto bRGB = biomeToRGB(biomeMap);
 	if (!writePPM("out/height.ppm", W, H, hRGB)) std::cerr << "Failed write height\n";
 	if (!writePPM("out/biome.ppm", W, H, bRGB)) std::cerr << "Failed write biome\n";
 
-	std::cout << "Wrote out/height.ppm and out/biome.ppm (and erosion outputs)\n";
+	std::cout << "Wrote out/height.ppm and out/biome.ppm (and erosion/river outputs)\n";
 	return 0;
 }

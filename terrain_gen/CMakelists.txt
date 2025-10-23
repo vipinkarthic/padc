@@ -44,7 +44,7 @@ message(STATUS "Found ${SRC_COUNT} source files")
 
 # ---- Executable ----
 add_executable(terrain-gen ${SRC_FILES})
-target_include_directories(terrain-gen PUBLIC ${DEPS_DIR} ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/biome ${CMAKE_SOURCE_DIR}/src/core ${CMAKE_SOURCE_DIR}/src/erosion ${CMAKE_SOURCE_DIR}/src/noise ${CMAKE_SOURCE_DIR}/src/utils ${CMAKE_SOURCE_DIR}/src/world)
+target_include_directories(terrain-gen PUBLIC ${DEPS_DIR} ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/biome ${CMAKE_SOURCE_DIR}/src/core ${CMAKE_SOURCE_DIR}/src/erosion ${CMAKE_SOURCE_DIR}/src/noise ${CMAKE_SOURCE_DIR}/src/utils ${CMAKE_SOURCE_DIR}/src/world ${CMAKE_SOURCE_DIR}/src/river ${CMAKE_SOURCE_DIR}/src/image ${CMAKE_SOURCE_DIR}/src/thermal) 
 
 # ---- OpenMP (optional) ----
 if(ENABLE_OPENMP)
