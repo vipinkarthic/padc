@@ -11,6 +11,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "BiomeClassifier.h"
@@ -18,11 +19,13 @@
 #include "BiomeSystem.h"
 #include "ErosionParams.h"
 #include "HydraulicErosion.h"
+#include "ObjectPlacer.h"
 #include "PerlinNoise.h"
 #include "RiverGenerator.h"
 #include "Types.h"
 #include "WorldType_Voronoi.h"
 #include "json.hpp"
+#include "util.h"
 
 using json = nlohmann::json;
 
@@ -131,6 +134,44 @@ static std::vector<unsigned char> biomeToRGB(const Grid2D<Biome>& g) {
 	return out;
 }
 
+// Map Biome enum -> biomes.json id string (must match the ids used in your biomes.json)
+static std::string biomeEnumToId(Biome b) {
+	switch (b) {
+		case Biome::Ocean:
+			return "Ocean";
+		case Biome::Beach:
+			return "Beach";
+		case Biome::Lake:
+			return "Lake";
+		case Biome::Mangrove:
+			return "Mangrove";
+		case Biome::Desert:
+			return "Desert";
+		case Biome::Savanna:
+			return "Savanna";
+		case Biome::Grassland:
+			return "Grassland";
+		case Biome::TropicalRainforest:
+			return "Tropical Rainforest";
+		case Biome::SeasonalForest:
+			return "Seasonal Forest";
+		case Biome::BorealForest:
+			return "Boreal Forest";
+		case Biome::Tundra:
+			return "Tundra";
+		case Biome::Snow:
+			return "Snow";
+		case Biome::Rocky:
+			return "Rocky";
+		case Biome::Mountain:
+			return "Mountain";
+		case Biome::Swamp:
+			return "Swamp";
+		default:
+			return "Unknown";
+	}
+}
+
 int main(int argc, char** argv) {
 	// --- DEBUG: show working directory and config path (Windows-friendly) ---
 	char cwdBuf[4096];
@@ -217,7 +258,6 @@ int main(int argc, char** argv) {
 	PerlinNoise pTemp(seed ^ 0xA5A5A5);
 	PerlinNoise pMoist(seed ^ 0x5A5A5A);
 	float baseFreq = 0.0025f;
-	int oct = 5;
 
 	for (int y = 0; y < H; ++y)
 		for (int x = 0; x < W; ++x) {
@@ -360,8 +400,89 @@ int main(int argc, char** argv) {
 		if (!writePPM("out/biome_after_rivers.ppm", W, H, bRGB_after_rivers)) std::cerr << "Failed write out/biome_after_rivers.ppm\n";
 	}
 
+	// -----------------------------
+	// Map utils + Object placement
+	// -----------------------------
+	std::cerr << "[DEBUG] Computing slope, water mask and coast distances for object placement" << std::endl;
+
+	// compute slope
+	std::vector<float> slope;
+	map::computeSlopeMap(gridToVector(height), W, H, slope);  // helper computes using a linear array
+
+	// compute water mask (uses ocean/lake thresholds from config)
+	std::vector<unsigned char> waterMask;
+	float oceanThreshold = cfg.value("oceanHeightThreshold", 0.35f);
+	float lakeThreshold = cfg.value("lakeHeightThreshold", 0.45f);
+	map::computeWaterMask(gridToVector(height), W, H, oceanThreshold, lakeThreshold, waterMask);
+
+	// compute coast distances (in tiles)
+	std::vector<int> coastDist;
+	map::computeCoastDistance(waterMask, W, H, coastDist);
+
+	std::unordered_map<std::string, int> biomeIdToIndex;
+	for (size_t i = 0; i < defs.size(); ++i) {
+		std::string idStr = biomeEnumToId(defs[i].id);
+		biomeIdToIndex.insert_or_assign(idStr, (int)i);
+	}
+
+	// build linear biome_idx mapping from the grid's Biome enum -> index in defs
+	std::vector<int> biome_idx((size_t)W * H, -1);
+	for (int y = 0; y < H; ++y) {
+		for (int x = 0; x < W; ++x) {
+			int i = y * W + x;
+			std::string id = biomeEnumToId(biomeMap(x, y));	 // convert enum to string
+			auto it = biomeIdToIndex.find(id);
+			if (it != biomeIdToIndex.end())
+				biome_idx[i] = it->second;
+			else
+				biome_idx[i] = -1;
+		}
+	}
+
+	// load object placement config (object_placement.json)
+	std::filesystem::path placementPath = std::filesystem::absolute("../../assets/object_placement.json");
+	if (!std::filesystem::exists(placementPath)) {
+		std::cerr << "[WARN] object_placement.json not found at " << placementPath.string() << " — skipping object placement\n";
+	} else {
+		std::ifstream pf(placementPath.string());
+		json placeCfg;
+		try {
+			pf >> placeCfg;
+		} catch (const std::exception& e) {
+			std::cerr << "[ERROR] Failed to parse object_placement.json: " << e.what() << std::endl;
+		}
+		pf.close();
+
+		// create placer and run
+		std::cerr << "[DEBUG] Running ObjectPlacer..." << std::endl;
+		ObjectPlacer placer(W, H, (float)W);
+		placer.loadPlacementConfig(placeCfg);
+
+		// build biome id list (same order as defs vector)
+		std::vector<std::string> biomeIds;
+		biomeIds.reserve(defs.size());
+		for (auto& d : defs) {
+			// defs[i].id is a Biome enum; convert to the string id used in your biomes.json
+			biomeIds.push_back(biomeEnumToId(d.id));
+		}
+		placer.setBiomeIdList(biomeIds);
+
+		// height as linear vector
+		std::vector<float> heightLinear = gridToVector(height);
+
+		// run placement
+		placer.place(heightLinear, slope, waterMask, coastDist, biome_idx);
+
+		// outputs
+		placer.writeCSV("out/objects.csv");
+		placer.writeDebugPPM("out/objects_map.ppm");
+		std::cerr << "[DEBUG] Object placement complete. Wrote out/objects.csv and out/objects_map.ppm\n";
+	}
+
+	// -----------------------------
+	// Final outputs (height + biome)
+	// -----------------------------
 	std::cerr << "[DEBUG] Saving final outputs to out/ ..." << std::endl;
-	// write outputs as PPM (simple) - these now reflect the post-river state
 	auto hRGB = heightToRGB(height);
 	auto bRGB = biomeToRGB(biomeMap);
 	if (!writePPM("out/height.ppm", W, H, hRGB)) std::cerr << "Failed write height\n";

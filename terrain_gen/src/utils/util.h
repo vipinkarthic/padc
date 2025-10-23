@@ -1,4 +1,11 @@
 #pragma once
+#include <algorithm>
+#include <cmath>
+#include <cstdint>
+#include <fstream>
+#include <queue>
+#include <string>
+#include <vector>
 
 using ll = long long;
 
@@ -19,3 +26,11 @@ class RNG {
 
 ll splitmix(ll &state);
 }  // namespace rng_util
+namespace map {
+void computeSlopeMap(const std::vector<float> &height, int W, int H, std::vector<float> &out_slope);
+
+void computeWaterMask(const std::vector<float> &height, int W, int H, float oceanThreshold, float lakeThreshold, std::vector<unsigned char> &out_waterMask);
+
+void computeCoastDistance(const std::vector<unsigned char> &waterMask, int W, int H, std::vector<int> &out_coastDist);
+
+}  // namespace map

@@ -1,0 +1,425 @@
+{
+    "seed": 424242,
+    "global_max_instances": 200000,
+    "default_min_distance_m": 1.0,
+    "models_path": "assets/models/",
+    "biome_objects": {
+        "Ocean": [
+            {
+                "name": "placeholder_seaweed",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 0,
+                "min_distance_m": 0.5,
+                "requires_water": true
+            }
+        ],
+        "Beach": [
+            {
+                "name": "placeholder_palm",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 0.4,
+                "min_distance_m": 3.0,
+                "scale_min": 0.8,
+                "scale_max": 1.6,
+                "elevation_min": 0.0,
+                "elevation_max": 0.40,
+                "prefers_coast": true
+            },
+            {
+                "name": "placeholder_driftwood",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 0.6,
+                "min_distance_m": 1.5,
+                "elevation_min": 0.0,
+                "elevation_max": 0.40
+            },
+            {
+                "name": "placeholder_beach_grass",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 12,
+                "min_distance_m": 0.6,
+                "elevation_min": 0.0,
+                "elevation_max": 0.40
+            }
+        ],
+        "Lake": [
+            {
+                "name": "placeholder_reed",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 0.8,
+                "min_distance_m": 0.6,
+                "requires_water": true,
+                "elevation_min": 0.0,
+                "elevation_max": 0.45
+            },
+            {
+                "name": "placeholder_lake_rock",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 0.9,
+                "min_distance_m": 1.2,
+                "elevation_min": 0.0,
+                "elevation_max": 0.45
+            },
+            {
+                "name": "placeholder_grass",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 20,
+                "min_distance_m": 0.5,
+                "elevation_min": 0.0,
+                "elevation_max": 0.45
+            }
+        ],
+        "Mangrove": [
+            {
+                "name": "placeholder_mangrove_tree",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 20,
+                "min_distance_m": 1.2,
+                "requires_water": true,
+                "prefers_coast": true,
+                "elevation_min": 0.0,
+                "elevation_max": 0.5
+            },
+            {
+                "name": "placeholder_mangrove_bush",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 6,
+                "min_distance_m": 0.6,
+                "elevation_min": 0.0,
+                "elevation_max": 0.5
+            },
+            {
+                "name": "placeholder_mud_patch",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 12,
+                "min_distance_m": 0.5,
+                "elevation_min": 0.0,
+                "elevation_max": 0.5
+            }
+        ],
+        "Desert": [
+            {
+                "name": "placeholder_desert_shrub",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 0.4,
+                "min_distance_m": 1.0,
+                "elevation_min": 0.0,
+                "elevation_max": 1.0
+            },
+            {
+                "name": "placeholder_desert_rock",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 0.6,
+                "min_distance_m": 0.6,
+                "elevation_min": 0.0,
+                "elevation_max": 1.0
+            },
+            {
+                "name": "placeholder_sparse_grass",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 4,
+                "min_distance_m": 0.6,
+                "elevation_min": 0.0,
+                "elevation_max": 1.0
+            }
+        ],
+        "Savanna": [
+            {
+                "name": "placeholder_savanna_tree",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 6,
+                "min_distance_m": 2.0,
+                "scale_min": 0.9,
+                "scale_max": 1.4,
+                "elevation_min": 0.0,
+                "elevation_max": 0.8
+            },
+            {
+                "name": "placeholder_savanna_rock",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 1.5,
+                "min_distance_m": 1.0,
+                "elevation_min": 0.0,
+                "elevation_max": 0.8
+            },
+            {
+                "name": "placeholder_savanna_grass",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 20,
+                "min_distance_m": 0.6,
+                "elevation_min": 0.0,
+                "elevation_max": 0.8
+            }
+        ],
+        "Grassland": [
+            {
+                "name": "placeholder_oak",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 8,
+                "min_distance_m": 2.0,
+                "elevation_min": 0.0,
+                "elevation_max": 0.9
+            },
+            {
+                "name": "placeholder_rock_cluster",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 2,
+                "min_distance_m": 1.2,
+                "elevation_min": 0.0,
+                "elevation_max": 0.9
+            },
+            {
+                "name": "placeholder_grass_dense",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 48,
+                "min_distance_m": 0.4,
+                "elevation_min": 0.0,
+                "elevation_max": 0.9
+            }
+        ],
+        "Tropical Rainforest": [
+            {
+                "name": "placeholder_rainforest_tree",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 36,
+                "min_distance_m": 1.2,
+                "scale_min": 0.9,
+                "scale_max": 1.6,
+                "elevation_min": 0.15,
+                "elevation_max": 0.8
+            },
+            {
+                "name": "placeholder_rain_boulder",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 1.5,
+                "min_distance_m": 2.5,
+                "elevation_min": 0.15,
+                "elevation_max": 0.8
+            },
+            {
+                "name": "placeholder_underbrush",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 72,
+                "min_distance_m": 0.3,
+                "elevation_min": 0.15,
+                "elevation_max": 0.8
+            }
+        ],
+        "Seasonal Forest": [
+            {
+                "name": "placeholder_seasonal_tree",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 24,
+                "min_distance_m": 1.4,
+                "elevation_min": 0.08,
+                "elevation_max": 0.9
+            },
+            {
+                "name": "placeholder_season_rock",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 2.4,
+                "min_distance_m": 1.2,
+                "elevation_min": 0.08,
+                "elevation_max": 0.9
+            },
+            {
+                "name": "placeholder_season_grass",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 48,
+                "min_distance_m": 0.5,
+                "elevation_min": 0.08,
+                "elevation_max": 0.9
+            }
+        ],
+        "Boreal Forest": [
+            {
+                "name": "placeholder_boreal_tree",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 20,
+                "min_distance_m": 1.6,
+                "elevation_min": 0.12,
+                "elevation_max": 0.95
+            },
+            {
+                "name": "placeholder_boreal_rock",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 3.6,
+                "min_distance_m": 1.8,
+                "elevation_min": 0.12,
+                "elevation_max": 0.95
+            },
+            {
+                "name": "placeholder_boreal_grass",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 32,
+                "min_distance_m": 0.6,
+                "elevation_min": 0.12,
+                "elevation_max": 0.95
+            }
+        ],
+        "Tundra": [
+            {
+                "name": "placeholder_tundra_shrub",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 0.8,
+                "min_distance_m": 1.2
+            },
+            {
+                "name": "placeholder_tundra_rock",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 6,
+                "min_distance_m": 1.0
+            },
+            {
+                "name": "placeholder_tundra_grass",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 4,
+                "min_distance_m": 0.6
+            }
+        ],
+        "Snow": [
+            {
+                "name": "placeholder_snow_rock",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 1.5,
+                "min_distance_m": 1.8,
+                "elevation_min": 0.75,
+                "elevation_max": 1.0
+            },
+            {
+                "name": "placeholder_snow_boulder",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 0.9,
+                "min_distance_m": 2.5,
+                "elevation_min": 0.75,
+                "elevation_max": 1.0
+            },
+            {
+                "name": "placeholder_snow_patch",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 3,
+                "min_distance_m": 0.8,
+                "elevation_min": 0.75,
+                "elevation_max": 1.0
+            }
+        ],
+        "Rocky": [
+            {
+                "name": "placeholder_crag_tree",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 0.8,
+                "min_distance_m": 2.0,
+                "elevation_min": 0.4,
+                "elevation_max": 1.0
+            },
+            {
+                "name": "placeholder_rocky_boulder",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 18,
+                "min_distance_m": 1.6,
+                "elevation_min": 0.4,
+                "elevation_max": 1.0
+            },
+            {
+                "name": "placeholder_rocky_grass",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 8,
+                "min_distance_m": 0.8,
+                "elevation_min": 0.4,
+                "elevation_max": 1.0
+            }
+        ],
+        "Mountain": [
+            {
+                "name": "placeholder_mountain_tree",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 2,
+                "min_distance_m": 2.4,
+                "elevation_min": 0.6,
+                "elevation_max": 1.0
+            },
+            {
+                "name": "placeholder_mountain_boulder",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 9,
+                "min_distance_m": 2.0,
+                "elevation_min": 0.6,
+                "elevation_max": 1.0
+            },
+            {
+                "name": "placeholder_mountain_grass",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 6,
+                "min_distance_m": 0.8,
+                "elevation_min": 0.6,
+                "elevation_max": 1.0
+            }
+        ],
+        "Swamp": [
+            {
+                "name": "placeholder_swamp_tree",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 20,
+                "min_distance_m": 1.0,
+                "requires_water": true
+            },
+            {
+                "name": "placeholder_swamp_rock",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 1.5,
+                "min_distance_m": 1.2,
+                "requires_water": true
+            },
+            {
+                "name": "placeholder_swamp_grass",
+                "model": "",
+                "placeholder": true,
+                "density_per_1000m2": 24,
+                "min_distance_m": 0.6,
+                "requires_water": true
+            }
+        ]
+    }
+}
