@@ -1,0 +1,148 @@
+[
+    {
+        "id": "Ocean",
+        "name": "Ocean",
+        "treeDensity": 0,
+        "rockDensity": 0,
+        "grassDensity": 0,
+        "prefMinElevation": 0.0,
+        "prefMaxElevation": 0.35,
+        "requiresWater": true
+    },
+    {
+        "id": "Beach",
+        "name": "Beach",
+        "treeDensity": 0.01,
+        "rockDensity": 0.02,
+        "grassDensity": 0.15,
+        "prefMinElevation": 0.0,
+        "prefMaxElevation": 0.40,
+        "prefersCoast": true
+    },
+    {
+        "id": "Lake",
+        "name": "Lake",
+        "treeDensity": 0.02,
+        "rockDensity": 0.03,
+        "grassDensity": 0.25,
+        "prefMinElevation": 0.0,
+        "prefMaxElevation": 0.45,
+        "requiresWater": true
+    },
+    {
+        "id": "Mangrove",
+        "name": "Mangrove",
+        "treeDensity": 0.5,
+        "rockDensity": 0.05,
+        "grassDensity": 0.15,
+        "moistureModifier": 1.3,
+        "prefMinElevation": 0.0,
+        "prefMaxElevation": 0.5,
+        "requiresWater": true,
+        "prefersCoast": true
+    },
+    {
+        "id": "Desert",
+        "name": "Desert",
+        "treeDensity": 0.01,
+        "rockDensity": 0.02,
+        "grassDensity": 0.05,
+        "moistureModifier": 0.25,
+        "prefMinElevation": 0.0,
+        "prefMaxElevation": 1.0
+    },
+    {
+        "id": "Savanna",
+        "name": "Savanna",
+        "treeDensity": 0.15,
+        "rockDensity": 0.05,
+        "grassDensity": 0.25,
+        "moistureModifier": 0.6,
+        "prefMinElevation": 0.0,
+        "prefMaxElevation": 0.8
+    },
+    {
+        "id": "Grassland",
+        "name": "Grassland",
+        "treeDensity": 0.2,
+        "rockDensity": 0.06,
+        "grassDensity": 0.6,
+        "moistureModifier": 0.8,
+        "prefMinElevation": 0.0,
+        "prefMaxElevation": 0.9
+    },
+    {
+        "id": "Tropical Rainforest",
+        "name": "Tropical Rainforest",
+        "treeDensity": 0.9,
+        "rockDensity": 0.05,
+        "grassDensity": 0.8,
+        "moistureModifier": 1.4,
+        "prefMinElevation": 0.15,
+        "prefMaxElevation": 0.8,
+        "prefMinMoisture": 0.6,
+        "prefMinTemperature": 0.55
+    },
+    {
+        "id": "Seasonal Forest",
+        "name": "Seasonal Forest",
+        "treeDensity": 0.6,
+        "rockDensity": 0.08,
+        "grassDensity": 0.6,
+        "prefMinElevation": 0.08,
+        "prefMaxElevation": 0.9
+    },
+    {
+        "id": "Boreal Forest",
+        "name": "Boreal Forest",
+        "treeDensity": 0.5,
+        "rockDensity": 0.12,
+        "grassDensity": 0.4,
+        "prefMinElevation": 0.12,
+        "prefMaxElevation": 0.95
+    },
+    {
+        "id": "Tundra",
+        "name": "Tundra",
+        "treeDensity": 0.02,
+        "rockDensity": 0.2,
+        "grassDensity": 0.05,
+        "moistureModifier": 0.6
+    },
+    {
+        "id": "Snow",
+        "name": "Snow",
+        "treeDensity": 0.0,
+        "rockDensity": 0.05,
+        "grassDensity": 0.0,
+        "prefMinElevation": 0.75,
+        "prefMaxElevation": 1.0
+    },
+    {
+        "id": "Rocky",
+        "name": "Rocky",
+        "treeDensity": 0.02,
+        "rockDensity": 0.6,
+        "grassDensity": 0.02,
+        "prefMinElevation": 0.4,
+        "prefMaxElevation": 1.0
+    },
+    {
+        "id": "Mountain",
+        "name": "Mountain",
+        "treeDensity": 0.05,
+        "rockDensity": 0.3,
+        "grassDensity": 0.05,
+        "prefMinElevation": 0.6,
+        "prefMaxElevation": 1.0
+    },
+    {
+        "id": "Swamp",
+        "name": "Swamp",
+        "treeDensity": 0.5,
+        "rockDensity": 0.05,
+        "grassDensity": 0.2,
+        "moistureModifier": 1.5,
+        "requiresWater": true
+    }
+]

@@ -1,0 +1,14 @@
+{
+    "seed": 424242,
+    "width": 512,
+    "height": 512,
+    "worldType": "Voronoi",
+    "numPlates": 36,
+    "fbmBlend": 0.42,
+    "fbmFrequency": 0.0035,
+    "fbmOctaves": 5,
+    "oceanHeightThreshold": 0.35,
+    "lakeHeightThreshold": 0.45,
+    "coastDistanceTiles": 3,
+    "smoothingIterations": 1
+}

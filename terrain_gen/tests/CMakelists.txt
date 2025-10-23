@@ -1,0 +1,13 @@
+# tests/CMakeLists.txt
+file(GLOB TEST_SOURCES ${CMAKE_SOURCE_DIR}/tests/*.cpp)
+
+foreach(tfile ${TEST_SOURCES})
+  get_filename_component(tname ${tfile} NAME_WE)
+  add_executable(${tname} ${tfile})
+  target_include_directories(${tname} PRIVATE ${CMAKE_SOURCE_DIR}/deps ${CMAKE_SOURCE_DIR}/src)
+  # Link OpenMP if available
+  if(OpenMP_CXX_FOUND)
+    target_link_libraries(${tname} PUBLIC OpenMP::OpenMP_CXX)
+  endif()
+  add_test(NAME ${tname} COMMAND ${tname})
+endforeach()

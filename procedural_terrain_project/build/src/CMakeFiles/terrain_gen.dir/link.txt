@@ -1,3 +1,0 @@
-C:\msys64\mingw64\bin\cmake.exe -E rm -f CMakeFiles\terrain_gen.dir/objects.a
-C:\msys64\mingw64\bin\ar.exe qc CMakeFiles\terrain_gen.dir/objects.a @CMakeFiles\terrain_gen.dir\objects1.rsp
-C:\msys64\mingw64\bin\c++.exe -O3 -DNDEBUG -Wl,--whole-archive CMakeFiles\terrain_gen.dir/objects.a -Wl,--no-whole-archive -o ..\bin\terrain_gen.exe -Wl,--out-implib,libterrain_gen.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\terrain_gen.dir\linkLibs.rsp
