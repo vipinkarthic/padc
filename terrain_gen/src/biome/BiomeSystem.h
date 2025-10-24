@@ -69,4 +69,7 @@ struct BiomeDef {
 	BiomeDef() = default;
 };
 
-inline std::vector<BiomeDef> DEFAULT_BIOMES() {}
+inline std::vector<BiomeDef> DEFAULT_BIOMES() { 
+	std::vector<BiomeDef> defs;
+	return defs;
+}

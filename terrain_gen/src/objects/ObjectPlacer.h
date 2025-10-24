@@ -45,6 +45,7 @@ class ObjectPlacer {
 	const std::vector<ObjInstance> &instances() const;
 	void writeCSV(const std::string &path = "out/objects.csv") const;
 	void writeDebugPPM(const std::string &path = "out/objects_map.ppm") const;
+	float rand01_from(uint64_t &state);
 
    private:
 	std::atomic<size_t> placedCount;
@@ -56,7 +57,6 @@ class ObjectPlacer {
 
 	std::vector<std::string> biomeIds;
 	std::unordered_map<std::string, std::vector<OPlaceDef>> biomeObjects;
-
 	std::vector<ObjInstance> placed;
 	std::vector<std::vector<int>> spatialGrid;
 	int gridW, gridH;

@@ -5,11 +5,6 @@
 #include <algorithm>
 #include <cmath>
 
-static inline int mix32(int a, int b) {
-	uint64_t res = (uint64_t)a * 0x9E3779B97F4A7C15ULL + b;
-	return (int)((res >> 32) ^ res);
-}
-
 WorldType_Voronoi::WorldType_Voronoi(int width, int height, const VoronoiConfig& cfg) : width_(width), height_(height), cfg_(cfg) {
 	noise_.init(cfg.seed + 12345);
 	initPlates();
@@ -19,10 +14,10 @@ void WorldType_Voronoi::initPlates() {
 	plates_.clear();
 	plates_.resize(cfg_.numPlates);
 	int s = (int)cfg_.seed;
-	
+
 #pragma omp parallel for schedule(static)
 	for (int i = 0; i < cfg_.numPlates; ++i) {
-		rng_util::RNG rng(s + i); // Different seed per thread
+		rng_util::RNG rng(s + i);  // Different seed per thread
 		VoronoiPlate p;
 		p.id = i;
 		p.seed = (int)rng.nextInt();

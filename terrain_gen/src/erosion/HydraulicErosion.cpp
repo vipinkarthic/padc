@@ -91,8 +91,6 @@ ErosionStats runHydraulicErosion(GridFloat &heightGrid, const ErosionParams &par
 
 	const int numThreads = omp_get_max_threads();
 
-	std::cerr << "[ERODE DEBUG] runHydraulicErosion start: W=" << W << " H=" << H << " N=" << N << " threads=" << numThreads << std::endl;
-
 	vector<vector<double>> erodeBufs, depositBufs;
 	erodeBufs.resize(numThreads);
 	depositBufs.resize(numThreads);
@@ -174,7 +172,8 @@ ErosionStats runHydraulicErosion(GridFloat &heightGrid, const ErosionParams &par
 			water *= (1.0f - params.evaporateRate);
 			if (water < params.minWater) break;
 			if (speed < params.minSpeed) break;
-		std::cerr << "[ERODE DEBUG] droplet loop completed, starting reduction ..." << std::endl;
+			std::cerr << "[ERODE DEBUG] droplet loop completed, starting reduction ..." << std::endl;
+		}
 	}
 
 	ErosionStats stats;
@@ -218,5 +217,4 @@ ErosionStats runHydraulicErosion(GridFloat &heightGrid, const ErosionParams &par
 	stats.appliedDroplets = N;
 	return stats;
 }
-
 }  // namespace erosion

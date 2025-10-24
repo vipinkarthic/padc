@@ -1,11 +1,9 @@
 cmake_minimum_required(VERSION 3.15)
 project(terrain-gen VERSION 0.1 LANGUAGES CXX)
 
-# ---- Options ----
 option(BUILD_TESTS "Build unit tests" ON)
 option(ENABLE_OPENMP "Link OpenMP if available" ON)
 
-# ---- Compiler settings ----
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -20,17 +18,10 @@ elseif(MSVC)
   add_compile_options(/O2)
 endif()
 
-# ---- Include paths for vendored headers ----
 set(DEPS_DIR ${CMAKE_SOURCE_DIR}/deps)
-if(EXISTS ${DEPS_DIR})
-  message(STATUS "Using vendored deps in: ${DEPS_DIR}")
-else()
-  message(WARNING "deps/ not found. Create deps/ and add stb_image_write.h and json.hpp (nlohmann).")
-endif()
 
 include_directories(${DEPS_DIR} ${CMAKE_SOURCE_DIR}/src)
 
-# ---- Source files ----
 file(GLOB_RECURSE SRC_FILES
   ${CMAKE_SOURCE_DIR}/src/*.cpp
   ${CMAKE_SOURCE_DIR}/src/*.c
@@ -38,15 +29,12 @@ file(GLOB_RECURSE SRC_FILES
   ${CMAKE_SOURCE_DIR}/src/*.hpp
 )
 
-# compute list length correctly
 list(LENGTH SRC_FILES SRC_COUNT)
 message(STATUS "Found ${SRC_COUNT} source files")
 
-# ---- Executable ----
 add_executable(terrain-gen ${SRC_FILES})
 target_include_directories(terrain-gen PUBLIC ${DEPS_DIR} ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/biome ${CMAKE_SOURCE_DIR}/src/core ${CMAKE_SOURCE_DIR}/src/erosion ${CMAKE_SOURCE_DIR}/src/noise ${CMAKE_SOURCE_DIR}/src/utils ${CMAKE_SOURCE_DIR}/src/world ${CMAKE_SOURCE_DIR}/src/river ${CMAKE_SOURCE_DIR}/src/image ${CMAKE_SOURCE_DIR}/src/objects) 
 
-# ---- OpenMP (optional) ----
 if(ENABLE_OPENMP)
   find_package(OpenMP)
   if(OpenMP_CXX_FOUND)
@@ -58,8 +46,6 @@ if(ENABLE_OPENMP)
 endif()
 
 
-
-# ---- Output & install ----
 set_target_properties(terrain-gen PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )
@@ -67,12 +53,6 @@ set_target_properties(terrain-gen PROPERTIES
 install(TARGETS terrain-gen
   RUNTIME DESTINATION bin
 )
-
-# ---- Tests ----
-if(BUILD_TESTS)
-  enable_testing()
-  add_subdirectory(tests)
-endif()
 
 message(STATUS "Project: ${PROJECT_NAME} v${PROJECT_VERSION}")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")

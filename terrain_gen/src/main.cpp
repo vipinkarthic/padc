@@ -35,6 +35,7 @@ int main(int argc, char** argv) {
 	} else {
 		std::cerr << "[DEBUG] CWD unknown" << std::endl;
 	}
+	std::cout << "CWD: " << std::filesystem::current_path() << std::endl;
 
 	std::string cfgRelPath = "../../assets/config.json";
 	std::filesystem::path absCfg = std::filesystem::absolute(cfgRelPath);
