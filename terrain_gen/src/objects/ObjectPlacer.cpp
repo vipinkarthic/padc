@@ -47,8 +47,13 @@ void ObjectPlacer::loadPlacementConfig(const json &cfg_json) {
 
 	biomeObjects.clear();
 	if (cfg_json.contains("biome_objects")) {
+		// Collect all biome-object pairs first
+		std::vector<std::pair<std::string, std::vector<OPlaceDef>>> tempBiomeObjects;
+		
 		for (auto &pair : cfg_json["biome_objects"].items()) {
 			std::string biomeId = pair.key();
+			std::vector<OPlaceDef> objects;
+			
 			for (auto &o : pair.value()) {
 				OPlaceDef od;
 				od.name = o.value("name", std::string("obj"));
@@ -70,8 +75,14 @@ void ObjectPlacer::loadPlacementConfig(const json &cfg_json) {
 					od.cluster_count = o["cluster"].value("count", 3);
 					od.cluster_radius = o["cluster"].value("radius", 2.0f);
 				}
-				biomeObjects[biomeId].push_back(od);
+				objects.push_back(od);
 			}
+			tempBiomeObjects.emplace_back(biomeId, std::move(objects));
+		}
+		
+		// Move to final container (this is already fast, but could be parallelized if needed)
+		for (auto &pair : tempBiomeObjects) {
+			biomeObjects[std::move(pair.first)] = std::move(pair.second);
 		}
 	}
 }
@@ -222,6 +233,11 @@ bool ObjectPlacer::attemptPlace(int x, int y, const OPlaceDef &od, const std::ve
 	}
 	// if cluster: spawn a few additional around within cluster_radius (no recursive clusters)
 	if (od.isCluster) {
+		// Pre-generate cluster positions in parallel
+		std::vector<std::pair<int, int>> clusterPositions(od.cluster_count);
+		std::vector<uint64_t> clusterSeeds(od.cluster_count);
+		
+#pragma omp parallel for schedule(static)
 		for (int c = 0; c < od.cluster_count; ++c) {
 			uint64_t clusterSeed = (uint64_t)createdId * 1009 + c * 7919 + seed;
 			float ang = rand01_from(clusterSeed) * 6.28318530718f;
@@ -231,11 +247,19 @@ bool ObjectPlacer::attemptPlace(int x, int y, const OPlaceDef &od, const std::ve
 			// map back to pixel
 			int px = std::min(W - 1, std::max(0, (int)std::floor(cx / cellSizeM)));
 			int py = std::min(H - 1, std::max(0, (int)std::floor(cy / cellSizeM)));
+			clusterPositions[c] = {px, py};
+			clusterSeeds[c] = clusterSeed;
+		}
+		
+		// Place cluster objects sequentially to avoid race conditions
+		for (int c = 0; c < od.cluster_count; ++c) {
+			int px = clusterPositions[c].first;
+			int py = clusterPositions[c].second;
 			if (px >= 0 && py >= 0 && px < W && py < H) {
 				// small fake OPlaceDef for cluster child (same as parent but smaller minDist)
 				OPlaceDef child = od;
 				child.min_distance_m = std::max(0.4f, od.min_distance_m * 0.5f);
-				uint64_t childSeed = clusterSeed;
+				uint64_t childSeed = clusterSeeds[c];
 				attemptPlace(px, py, child, height, slope, waterMask, coastDist, childSeed, bidx);
 			}
 		}
@@ -296,17 +320,38 @@ const std::vector<ObjInstance> &ObjectPlacer::instances() const { return placed;
 void ObjectPlacer::writeCSV(const std::string &path) const {
 	std::ofstream f(path);
 	f << "id,name,model,px,py,wx,wy,wz,yaw,scale,biome\n";
-	for (auto &it : placed) {
+	
+	// Pre-allocate string buffer for better performance
+	std::string buffer;
+	buffer.reserve(placed.size() * 100); // Estimate average line length
+	
+	// Collect all lines in parallel
+	std::vector<std::string> lines(placed.size());
+#pragma omp parallel for schedule(static)
+	for (size_t i = 0; i < placed.size(); ++i) {
+		const auto &it = placed[i];
 		std::string modelToWrite = it.model.empty() ? std::string("PLACEHOLDER:") + it.name : it.model;
-		f << it.id << "," << it.name << "," << modelToWrite << "," << it.px << "," << it.py << "," << it.wx << "," << it.wy << "," << it.wz << "," << it.yaw
-		  << "," << it.scale << "," << it.biome_id << "\n";
+		lines[i] = std::to_string(it.id) + "," + it.name + "," + modelToWrite + "," + 
+				   std::to_string(it.px) + "," + std::to_string(it.py) + "," + 
+				   std::to_string(it.wx) + "," + std::to_string(it.wy) + "," + 
+				   std::to_string(it.wz) + "," + std::to_string(it.yaw) + "," + 
+				   std::to_string(it.scale) + "," + it.biome_id + "\n";
+	}
+	
+	// Write all lines sequentially
+	for (const auto &line : lines) {
+		f << line;
 	}
 	f.close();
 }
 
 void ObjectPlacer::writeDebugPPM(const std::string &path) const {
 	std::vector<unsigned char> img(W * H * 3, 255);
-	for (auto &it : placed) {
+	
+	// Parallelize object placement in image
+#pragma omp parallel for schedule(static)
+	for (size_t i = 0; i < placed.size(); ++i) {
+		const auto &it = placed[i];
 		int x = it.px, y = it.py;
 		if (x < 0 || y < 0 || x >= W || y >= H) continue;
 		int idx = (y * W + x) * 3;
@@ -317,6 +362,7 @@ void ObjectPlacer::writeDebugPPM(const std::string &path) const {
 		img[idx + 1] = (h >> 8) & 255;
 		img[idx + 2] = (h >> 16) & 255;
 	}
+	
 	std::ofstream f(path, std::ios::binary);
 	f << "P6\n" << W << " " << H << "\n255\n";
 	f.write(reinterpret_cast<char *>(img.data()), img.size());

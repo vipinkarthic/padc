@@ -112,9 +112,11 @@ void RiverGenerator::carveRivers(const RiverParams& params) {
 	const int dy[4] = {0, 0, 1, -1};
 	std::vector<int> dist(N, INT_MAX);
 	std::queue<int> q;
+#pragma omp parallel for schedule(static)
 	for (int i = 0; i < N; ++i) {
 		if (RiverMask[i]) {
 			dist[i] = 0;
+#pragma omp critical
 			q.push(i);
 		}
 	}
