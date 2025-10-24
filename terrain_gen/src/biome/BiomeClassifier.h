@@ -30,7 +30,6 @@ static inline void computeDistanceMapBFS(int width, int height, std::vector<int>
 	outDist.assign(width * height, std::numeric_limits<int>::max());
 	std::vector<std::pair<int, int>> currentLevel, nextLevel;
 
-	// Initialize sources in parallel
 #pragma omp parallel for collapse(2)
 	for (int y = 0; y < height; ++y) {
 		for (int x = 0; x < width; ++x) {
@@ -46,13 +45,11 @@ static inline void computeDistanceMapBFS(int width, int height, std::vector<int>
 	constexpr int dx[4] = {1, -1, 0, 0};
 	constexpr int dy[4] = {0, 0, 1, -1};
 
-	// Multi-level BFS for better parallelization
 	int distance = 0;
 	while (!currentLevel.empty()) {
 		distance++;
 		nextLevel.clear();
-		
-		// Process current level in parallel
+
 #pragma omp parallel
 		{
 			std::vector<std::pair<int, int>> localNext;
@@ -61,7 +58,7 @@ static inline void computeDistanceMapBFS(int width, int height, std::vector<int>
 				auto [x, y] = currentLevel[i];
 				int idx = y * width + x;
 				int cd = outDist[idx];
-				
+
 				for (int k = 0; k < 4; ++k) {
 					int nx = x + dx[k];
 					int ny = y + dy[k];
@@ -73,14 +70,13 @@ static inline void computeDistanceMapBFS(int width, int height, std::vector<int>
 					}
 				}
 			}
-			
-			// Merge local results
+
 #pragma omp critical
 			{
 				nextLevel.insert(nextLevel.end(), localNext.begin(), localNext.end());
 			}
 		}
-		
+
 		currentLevel.swap(nextLevel);
 	}
 }
@@ -120,13 +116,11 @@ static inline void majorityFilter(int W, int H, std::vector<T>& mapData, int ite
 	std::vector<T> tmp(W * H);
 	for (int it = 0; it < iterations; ++it) {
 		tmp = mapData;
-		
-		// Use schedule(static) for better load balancing and reduce false sharing
+
 #pragma omp parallel for collapse(2) schedule(static)
 		for (int y = 0; y < H; ++y) {
 			for (int x = 0; x < W; ++x) {
-				// Use array instead of unordered_map for better cache performance
-				int counts[256] = {0}; // Assuming biome enum fits in 256 values
+				int counts[256] = {0};
 				for (int oy = -1; oy <= 1; ++oy) {
 					for (int ox = -1; ox <= 1; ++ox) {
 						int nx = x + ox, ny = y + oy;

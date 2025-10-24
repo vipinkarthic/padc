@@ -24,16 +24,9 @@ class PerlinNoise {
 			_p[i] = i;
 		}
 
-		// shuffle is seqn
-		// for (int i = permSize_ - 1; i > 0; --i) {
-		// 	int j = rng.nextInt() % (i + 1);
-		// 	std::swap(_p[i], _p[j]);
-		// }
 		for (int i = permSize_ - 1; i > 0; --i) {
-			// Ensure we get a non-negative 32-bit value before modulus
 			uint32_t r = static_cast<uint32_t>(rng.nextInt());
 			int j = static_cast<int>(r % static_cast<uint32_t>(i + 1));
-			// Defensive: clamp j into valid range just in case
 			if (j < 0) j = 0;
 			if (j > i) j = i;
 			std::swap(_p[i], _p[j]);

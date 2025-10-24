@@ -43,31 +43,10 @@ static inline void sampleHeightAndGradient(const GridFloat &g, float fx, float f
 	gy = (hy - ly) * 0.5f / eps;  // dH/dy
 }
 
-// static inline void accumulateToCellQuad(vector<double> &buf, int w, int h, float fx, float fy, double amount) {
-// 	if (amount == 0.0) return;
-// 	int x0 = (int)floor(fx);
-// 	int y0 = (int)floor(fy);
-// 	float sx = fx - x0, sy = fy - y0;
-// 	int x1 = std::min(x0 + 1, w - 1);
-// 	int y1 = std::min(y0 + 1, h - 1);
-
-// 	// wgt
-// 	double w00 = (1 - sx) * (1 - sy);
-// 	double w10 = sx * (1 - sy);
-// 	double w01 = (1 - sx) * sy;
-// 	double w11 = sx * sy;
-// 	auto idx = [&](int x, int y) { return y * w + x; };
-// 	buf[idx(x0, y0)] += amount * w00;
-// 	buf[idx(x1, y0)] += amount * w10;
-// 	buf[idx(x0, y1)] += amount * w01;
-// 	buf[idx(x1, y1)] += amount * w11;
-// }
-
 static inline void accumulateToCellQuad(vector<double> &buf, int w, int h, float fx, float fy, double amount) {
 	if (amount == 0.0) return;
 	if (w <= 0 || h <= 0) return;
 
-	// clamp fractional position into valid range
 	float fxc = fx;
 	float fyc = fy;
 	if (fxc < 0.0f) fxc = 0.0f;
@@ -80,7 +59,6 @@ static inline void accumulateToCellQuad(vector<double> &buf, int w, int h, float
 	int x1 = x0 + 1;
 	int y1 = y0 + 1;
 
-	// clamp to valid indices
 	if (x0 < 0) x0 = 0;
 	if (y0 < 0) y0 = 0;
 	if (x1 >= w) x1 = w - 1;
@@ -89,7 +67,6 @@ static inline void accumulateToCellQuad(vector<double> &buf, int w, int h, float
 	float sx = fxc - (float)x0;
 	float sy = fyc - (float)y0;
 
-	// compute weights
 	double w00 = (1.0 - sx) * (1.0 - sy);
 	double w10 = sx * (1.0 - sy);
 	double w01 = (1.0 - sx) * sy;
@@ -150,10 +127,8 @@ ErosionStats runHydraulicErosion(GridFloat &heightGrid, const ErosionParams &par
 			// update direction: inertia + slope influence
 			dirX = dirX * params.inertia - gradX * (1.0f - params.inertia);
 			dirY = dirY * params.inertia - gradY * (1.0f - params.inertia);
-			// normalize direction; if zero, add tiny jitter deterministic
 			float len = sqrtf(dirX * dirX + dirY * dirY);
 			if (len == 0.0f) {
-				// deterministic tiny jitter
 				double r = rng.nextFloat();
 				double theta = r * 2.0 * 3.141592653589793;
 				dirX = (float)cos(theta) * 1e-6f;
@@ -167,32 +142,24 @@ ErosionStats runHydraulicErosion(GridFloat &heightGrid, const ErosionParams &par
 			x += dirX * params.stepSize;
 			y += dirY * params.stepSize;
 
-			// stop if out of bounds
 			if (x < 0.0f || x > (W - 1) || y < 0.0f || y > (H - 1)) break;
 
 			float newHeight = sampleBilinear(heightGrid, x, y);
 			float deltaH = newHeight - heightHere;
 
-			// update speed using potential energy change
 			float potential = -deltaH;	// downhill positive
 			speed = sqrtf(std::max(0.0f, speed * speed + potential * params.gravity));
 
-			// estimate slope (positive downhill)
 			float slope = std::max(1e-6f, -deltaH / params.stepSize);
 
-			// capacity
 			float capacity = std::max(0.0f, params.capacityFactor * speed * water * slope);
 
-			// sediment/dynamics
 			if (sediment > capacity) {
-				// deposit
 				double deposit = params.depositRate * (sediment - capacity);
-				// clamp deposit so we don't deposit more than sediment
 				deposit = std::min<double>(deposit, sediment);
 				accumulateToCellQuad(depositBufs[tid], W, H, x, y, deposit);
 				sediment -= (float)deposit;
 			} else {
-				// erode
 				double delta = params.capacityFactor * (capacity - sediment);
 				double erode = params.erodeRate * delta;
 				erode = std::min(erode, (double)params.maxErodePerStep);
@@ -204,11 +171,9 @@ ErosionStats runHydraulicErosion(GridFloat &heightGrid, const ErosionParams &par
 				}
 			}
 
-			// evaporate water
 			water *= (1.0f - params.evaporateRate);
 			if (water < params.minWater) break;
 			if (speed < params.minSpeed) break;
-		}  // end droplet steps
 		std::cerr << "[ERODE DEBUG] droplet loop completed, starting reduction ..." << std::endl;
 	}
 
@@ -237,7 +202,6 @@ ErosionStats runHydraulicErosion(GridFloat &heightGrid, const ErosionParams &par
 		}
 	}
 
-	// Export optional maps
 	if (outEroded) {
 		outEroded->resize(W, H);
 #pragma omp parallel for collapse(2) schedule(static)

@@ -191,45 +191,6 @@ bool ObjectPlacer::attemptPlace(int x, int y, const OPlaceDef &od, const std::ve
 		createdId = newId;
 		createdWx = inst.wx;
 		createdWy = inst.wy;
-		// std::lock_guard<std::mutex> lk(mutexPlace);
-		// int gx = gidx % gridW, gy = gidx / gridW;
-		// int check = 2;
-		// for (int oy = -check; oy <= check; ++oy) {
-		// 	for (int ox = -check; ox <= check; ++ox) {
-		// 		int nx = gx + ox, ny = gy + oy;
-		// 		if (nx < 0 || ny < 0 || nx >= gridW || ny >= gridH) continue;
-		// 		int ng = ny * gridW + nx;
-		// 		for (int pid : spatialGrid[ng]) {
-		// 			const ObjInstance &other = placed[pid];
-		// 			float dx = other.wx - wx;
-		// 			float dy = other.wy - wy;
-		// 			if ((dx * dx + dy * dy) < (minD * minD)) {
-		// 				return false;  // blocked
-		// 			}
-		// 		}
-		// 	}
-		// }
-		// // passed -> create instance
-		// ObjInstance inst;
-		// createdId = (int)placed.size();
-		// inst.id = createdId;
-		// inst.name = od.name;
-		// inst.model = od.model;
-		// inst.px = x;
-		// inst.py = y;
-		// inst.wx = wx;
-		// inst.wy = wy;
-		// inst.wz = wz;
-		// inst.yaw = rand01_from(cellSeed) * od.yaw_variance;
-		// inst.scale = od.scale_min + rand01_from(cellSeed) * (od.scale_max - od.scale_min);
-		// if (bidx >= 0 && bidx < (int)biomeIds.size())
-		// 	inst.biome_id = biomeIds[bidx];
-		// else
-		// 	inst.biome_id = "unknown";
-		// placed.push_back(inst);
-		// spatialGrid[gidx].push_back(createdId);
-		// createdWx = inst.wx;
-		// createdWy = inst.wy;
 	}
 	// if cluster: spawn a few additional around within cluster_radius (no recursive clusters)
 	if (od.isCluster) {

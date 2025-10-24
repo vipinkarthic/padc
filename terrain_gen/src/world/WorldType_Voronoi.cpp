@@ -11,12 +11,8 @@ static inline int mix32(int a, int b) {
 }
 
 WorldType_Voronoi::WorldType_Voronoi(int width, int height, const VoronoiConfig& cfg) : width_(width), height_(height), cfg_(cfg) {
-	std::cerr << "[VORONOI DEBUG] ctor start W=" << width << " H=" << height << " numPlates=" << cfg.numPlates << std::endl;
-	// initialize noise in body (instead of in initializer list)
 	noise_.init(cfg.seed + 12345);
-	std::cerr << "[VORONOI DEBUG] about to allocate plates vector of size " << cfg.numPlates << std::endl;
 	initPlates();
-	std::cerr << "[VORONOI DEBUG] ctor finished" << std::endl;
 }
 
 void WorldType_Voronoi::initPlates() {
