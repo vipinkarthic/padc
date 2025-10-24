@@ -28,14 +28,17 @@ struct ClassifierOptions {
 
 static inline void computeDistanceMapBFS(int width, int height, std::vector<int>& sources, std::vector<int>& outDist) {
 	outDist.assign(width * height, std::numeric_limits<int>::max());
-	std::queue<std::pair<int, int>> q;
+	std::vector<std::pair<int, int>> currentLevel, nextLevel;
 
+	// Initialize sources in parallel
+#pragma omp parallel for collapse(2)
 	for (int y = 0; y < height; ++y) {
 		for (int x = 0; x < width; ++x) {
 			int idx = y * width + x;
 			if (sources[idx]) {
 				outDist[idx] = 0;
-				q.push({x, y});
+#pragma omp critical
+				currentLevel.emplace_back(x, y);
 			}
 		}
 	}
@@ -43,21 +46,42 @@ static inline void computeDistanceMapBFS(int width, int height, std::vector<int>
 	constexpr int dx[4] = {1, -1, 0, 0};
 	constexpr int dy[4] = {0, 0, 1, -1};
 
-	while (!q.empty()) {
-		auto [x, y] = q.front();
-		q.pop();
-		int idx = y * width + x;
-		int cd = outDist[idx];
-		for (int k = 0; k < 4; ++k) {
-			int nx = x + dx[k];
-			int ny = y + dy[k];
-			if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
-			int nidx = ny * width + nx;
-			if (outDist[nidx] > cd + 1) {
-				outDist[nidx] = cd + 1;
-				q.emplace(nx, ny);
+	// Multi-level BFS for better parallelization
+	int distance = 0;
+	while (!currentLevel.empty()) {
+		distance++;
+		nextLevel.clear();
+		
+		// Process current level in parallel
+#pragma omp parallel
+		{
+			std::vector<std::pair<int, int>> localNext;
+#pragma omp for nowait
+			for (size_t i = 0; i < currentLevel.size(); ++i) {
+				auto [x, y] = currentLevel[i];
+				int idx = y * width + x;
+				int cd = outDist[idx];
+				
+				for (int k = 0; k < 4; ++k) {
+					int nx = x + dx[k];
+					int ny = y + dy[k];
+					if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+					int nidx = ny * width + nx;
+					if (outDist[nidx] > cd + 1) {
+						outDist[nidx] = cd + 1;
+						localNext.emplace_back(nx, ny);
+					}
+				}
+			}
+			
+			// Merge local results
+#pragma omp critical
+			{
+				nextLevel.insert(nextLevel.end(), localNext.begin(), localNext.end());
 			}
 		}
+		
+		currentLevel.swap(nextLevel);
 	}
 }
 
@@ -65,6 +89,7 @@ static inline void computeNearMaskFromSources(int width, int height, std::vector
 	std::vector<int> dist;
 	computeDistanceMapBFS(width, height, sources, dist);
 	outNear.assign(width * height, 0);
+#pragma omp parallel for schedule(static)
 	for (int i = 0; i < width * height; ++i)
 		if (dist[i] <= thresholdTiles) outNear[i] = 1;
 }
@@ -72,6 +97,7 @@ static inline void computeNearMaskFromSources(int width, int height, std::vector
 static inline void computeSlopeMap(int width, int height, const std::function<float(int, int)>& heightAt, std::vector<float>& outSlope,
 								   float expectedMaxGrad = 0.18f) {
 	outSlope.assign(width * height, 0.0f);
+#pragma omp parallel for collapse(2) schedule(static)
 	for (int y = 0; y < height; ++y) {
 		for (int x = 0; x < width; ++x) {
 			float cx = heightAt(x, y);
@@ -94,9 +120,13 @@ static inline void majorityFilter(int W, int H, std::vector<T>& mapData, int ite
 	std::vector<T> tmp(W * H);
 	for (int it = 0; it < iterations; ++it) {
 		tmp = mapData;
+		
+		// Use schedule(static) for better load balancing and reduce false sharing
+#pragma omp parallel for collapse(2) schedule(static)
 		for (int y = 0; y < H; ++y) {
 			for (int x = 0; x < W; ++x) {
-				std::unordered_map<int, int> counts;
+				// Use array instead of unordered_map for better cache performance
+				int counts[256] = {0}; // Assuming biome enum fits in 256 values
 				for (int oy = -1; oy <= 1; ++oy) {
 					for (int ox = -1; ox <= 1; ++ox) {
 						int nx = x + ox, ny = y + oy;
@@ -108,10 +138,10 @@ static inline void majorityFilter(int W, int H, std::vector<T>& mapData, int ite
 				int centerVal = (int)mapData[y * W + x];
 				int bestVal = centerVal;
 				int bestCount = counts[centerVal];
-				for (auto& p : counts) {
-					if (p.second > bestCount) {
-						bestVal = p.first;
-						bestCount = p.second;
+				for (int i = 0; i < 256; ++i) {
+					if (counts[i] > bestCount) {
+						bestVal = i;
+						bestCount = counts[i];
 					}
 				}
 				tmp[y * W + x] = (T)bestVal;
@@ -210,6 +240,7 @@ static inline bool classifyBiomeMap(const GridFloat& heightGrid, const GridFloat
 
 	std::vector<int> oceanMask(W * H, 0);
 	std::vector<int> lakeMask(W * H, 0);
+#pragma omp parallel for collapse(2) schedule(static)
 	for (int y = 0; y < H; ++y) {
 		for (int x = 0; x < W; ++x) {
 			float e = heightGrid(x, y);
@@ -223,6 +254,7 @@ static inline bool classifyBiomeMap(const GridFloat& heightGrid, const GridFloat
 
 	std::vector<int> riverMask(W * H, 0);
 	if (riverMaskGrid) {
+#pragma omp parallel for collapse(2) schedule(static)
 		for (int y = 0; y < H; ++y)
 			for (int x = 0; x < W; ++x) riverMask[y * W + x] = ((*riverMaskGrid)(x, y) ? 1 : 0);
 	}
@@ -254,6 +286,7 @@ static inline bool classifyBiomeMap(const GridFloat& heightGrid, const GridFloat
 		majorityFilter<Biome>(W, H, chosen, opts.smoothingIterations);
 	}
 
+#pragma omp parallel for collapse(2) schedule(static)
 	for (int y = 0; y < H; ++y) {
 		for (int x = 0; x < W; ++x) {
 			outBiomeGrid(x, y) = chosen[y * W + x];
