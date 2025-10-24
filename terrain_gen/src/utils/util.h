@@ -7,6 +7,9 @@
 #include <string>
 #include <vector>
 
+#include "BiomeSystem.h"
+#include "Types.h"
+
 using ll = long long;
 
 #pragma once
@@ -34,3 +37,18 @@ void computeWaterMask(const std::vector<float> &height, int W, int H, float ocea
 void computeCoastDistance(const std::vector<unsigned char> &waterMask, int W, int H, std::vector<int> &out_coastDist);
 
 }  // namespace map
+
+namespace helper {
+std::vector<float> gridToVector(const Grid2D<float> &g);
+
+void vectorToGrid(const std::vector<float> &v, Grid2D<float> &g);
+
+std::vector<unsigned char> maskToRGB(const std::vector<uint8_t> &mask, int W, int H);
+
+bool writePPM(const std::string &path, int W, int H, const std::vector<unsigned char> &rgb);
+
+std::vector<unsigned char> heightToRGB(const Grid2D<float> &g);
+
+std::vector<unsigned char> biomeToRGB(const Grid2D<Biome> &g);
+
+}  // namespace helper

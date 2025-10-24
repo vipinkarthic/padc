@@ -69,7 +69,7 @@ struct BiomeDef {
 	BiomeDef() = default;
 };
 
-std::vector<BiomeDef> DEFAULT_BIOMES() {
+inline std::vector<BiomeDef> DEFAULT_BIOMES() {
 	std::vector<BiomeDef> defs;
 
 	auto push = [&](Biome id, const char *name, float tmod, float mmod, float treed, float rockd, float grassd, float bushd, float minE, float maxE, float minM,

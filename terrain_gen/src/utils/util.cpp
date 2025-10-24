@@ -145,3 +145,108 @@ void computeCoastDistance(const std::vector<unsigned char> &waterMask, int W, in
 }
 
 }  // namespace map
+
+namespace helper {
+std::vector<float> gridToVector(const Grid2D<float> &g) {
+	int W = g.width(), H = g.height();
+	std::vector<float> v((size_t)W * H);
+	for (int y = 0; y < H; ++y)
+		for (int x = 0; x < W; ++x) v[(size_t)y * W + x] = g(x, y);
+	return v;
+}
+
+void vectorToGrid(const std::vector<float> &v, Grid2D<float> &g) {
+	int W = g.width(), H = g.height();
+	for (int y = 0; y < H; ++y)
+		for (int x = 0; x < W; ++x) g(x, y) = v[(size_t)y * W + x];
+}
+
+std::vector<unsigned char> maskToRGB(const std::vector<uint8_t> &mask, int W, int H) {
+	std::vector<unsigned char> out((size_t)W * H * 3);
+	for (int y = 0; y < H; ++y)
+		for (int x = 0; x < W; ++x) {
+			size_t i = (size_t)y * W + x;
+			unsigned char m = mask[i];
+			size_t idx = i * 3;
+			out[idx + 0] = m;
+			out[idx + 1] = m;
+			out[idx + 2] = m;
+		}
+	return out;
+}
+
+bool writePPM(const std::string &path, int W, int H, const std::vector<unsigned char> &rgb) {
+	std::ofstream f(path, std::ios::binary);
+	if (!f) return false;
+	f << "P6\n" << W << " " << H << "\n255\n";
+	f.write((const char *)rgb.data(), rgb.size());
+	f.close();
+	return true;
+}
+
+std::vector<unsigned char> heightToRGB(const Grid2D<float> &g) {
+	int W = g.width(), H = g.height();
+	std::vector<unsigned char> out((size_t)W * H * 3);
+	for (int y = 0; y < H; ++y)
+		for (int x = 0; x < W; ++x) {
+			float v = g(x, y);
+			unsigned char c = (unsigned char)std::lround(std::clamp(v, 0.0f, 1.0f) * 255.0f);
+			size_t idx = ((size_t)y * W + x) * 3;
+			out[idx + 0] = c;
+			out[idx + 1] = c;
+			out[idx + 2] = c;
+		}
+	return out;
+}
+
+std::vector<unsigned char> biomeToRGB(const Grid2D<Biome> &g) {
+	int W = g.width(), H = g.height();
+	std::vector<unsigned char> out((size_t)W * H * 3);
+	auto colorOf = [](Biome b) -> std::array<unsigned char, 3> {
+		switch (b) {
+			case Biome::Ocean:
+				return {24, 64, 160};
+			case Biome::Beach:
+				return {238, 214, 175};
+			case Biome::Lake:
+				return {36, 120, 200};
+			case Biome::Mangrove:
+				return {31, 90, 42};
+			case Biome::Desert:
+				return {210, 180, 140};
+			case Biome::Savanna:
+				return {189, 183, 107};
+			case Biome::Grassland:
+				return {130, 200, 80};
+			case Biome::TropicalRainforest:
+				return {16, 120, 45};
+			case Biome::SeasonalForest:
+				return {34, 139, 34};
+			case Biome::BorealForest:
+				return {80, 120, 70};
+			case Biome::Tundra:
+				return {180, 190, 200};
+			case Biome::Snow:
+				return {240, 240, 250};
+			case Biome::Rocky:
+				return {140, 130, 120};
+			case Biome::Mountain:
+				return {120, 120, 140};
+			case Biome::Swamp:
+				return {34, 85, 45};
+			default:
+				return {255, 0, 255};
+		}
+	};
+	for (int y = 0; y < H; ++y)
+		for (int x = 0; x < W; ++x) {
+			auto c = colorOf(g(x, y));
+			size_t idx = ((size_t)y * W + x) * 3;
+			out[idx + 0] = c[0];
+			out[idx + 1] = c[1];
+			out[idx + 2] = c[2];
+		}
+	return out;
+}
+
+}  // namespace helper
