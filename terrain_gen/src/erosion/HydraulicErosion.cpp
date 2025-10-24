@@ -214,6 +214,7 @@ ErosionStats runHydraulicErosion(GridFloat &heightGrid, const ErosionParams &par
 
 	ErosionStats stats;
 	vector<double> finalErode(nCells, 0.0), finalDeposit(nCells, 0.0);
+#pragma omp parallel for schedule(static)
 	for (int t = 0; t < numThreads; ++t) {
 		const auto &eb = erodeBufs[t];
 		const auto &db = depositBufs[t];
@@ -223,6 +224,7 @@ ErosionStats runHydraulicErosion(GridFloat &heightGrid, const ErosionParams &par
 		}
 	}
 
+#pragma omp parallel for collapse(2) schedule(static)
 	for (int y = 0; y < H; ++y) {
 		for (int x = 0; x < W; ++x) {
 			size_t idx = (size_t)y * W + x;
@@ -238,11 +240,13 @@ ErosionStats runHydraulicErosion(GridFloat &heightGrid, const ErosionParams &par
 	// Export optional maps
 	if (outEroded) {
 		outEroded->resize(W, H);
+#pragma omp parallel for collapse(2) schedule(static)
 		for (int y = 0; y < H; ++y)
 			for (int x = 0; x < W; ++x) (*outEroded)(x, y) = (float)finalErode[(size_t)y * W + x];
 	}
 	if (outDeposited) {
 		outDeposited->resize(W, H);
+#pragma omp parallel for collapse(2) schedule(static)
 		for (int y = 0; y < H; ++y)
 			for (int x = 0; x < W; ++x) (*outDeposited)(x, y) = (float)finalDeposit[(size_t)y * W + x];
 	}

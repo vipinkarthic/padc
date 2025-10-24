@@ -74,6 +74,7 @@ void RiverGenerator::computeFlowAccumulation() {
 	int N = W * H;
 	// Build list of indices sorted by elevation descending
 	std::vector<int> order(N);
+#pragma omp parallel for schedule(static)
 	for (int i = 0; i < N; ++i) order[i] = i;
 	std::sort(order.begin(), order.end(), [&](int a, int b) { return Hmap[a] > Hmap[b]; });
 

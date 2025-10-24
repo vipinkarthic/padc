@@ -97,6 +97,7 @@ int main(int argc, char** argv) {
 	PerlinNoise pMoist(seed ^ 0x5A5A5A);
 	float baseFreq = 0.0025f;
 
+#pragma omp parallel for collapse(2) schedule(static)
 	for (int y = 0; y < H; ++y)
 		for (int x = 0; x < W; ++x) {
 			float e = height(x, y);
@@ -235,6 +236,7 @@ int main(int argc, char** argv) {
 	}
 
 	std::vector<int> biome_idx((size_t)W * H, -1);
+#pragma omp parallel for collapse(2) schedule(static)
 	for (int y = 0; y < H; ++y) {
 		for (int x = 0; x < W; ++x) {
 			int i = y * W + x;

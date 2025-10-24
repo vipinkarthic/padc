@@ -34,6 +34,7 @@ void computeSlopeMap(const std::vector<float> &height, int W, int H, std::vector
 	out_slope.assign(W * H, 0.0f);
 	auto idx = [&](int x, int y) { return y * W + x; };
 	// world cell spacing assumed 1 (scale can be applied outside)
+#pragma omp parallel for collapse(2) schedule(static)
 	for (int y = 0; y < H; ++y) {
 		for (int x = 0; x < W; ++x) {
 			float hz = height[idx(x, y)];
@@ -58,6 +59,7 @@ void computeWaterMask(const std::vector<float> &height, int W, int H, float ocea
 
 	// first mark potential water by lakeThreshold
 	std::vector<unsigned char> potential(W * H, 0);
+#pragma omp parallel for schedule(static)
 	for (int i = 0; i < W * H; ++i) potential[i] = (height[i] <= lakeThreshold) ? 1 : 0;
 
 	// flood-fill from edges for ocean: if potential and reachable from border -> ocean
@@ -119,11 +121,13 @@ void computeCoastDistance(const std::vector<unsigned char> &waterMask, int W, in
 	out_coastDist.assign(W * H, INF);
 	std::queue<int> q;
 	auto idx = [&](int x, int y) { return y * W + x; };
+#pragma omp parallel for collapse(2) schedule(static)
 	for (int y = 0; y < H; ++y)
 		for (int x = 0; x < W; ++x) {
 			int i = idx(x, y);
 			if (waterMask[i]) {
 				out_coastDist[i] = 0;
+#pragma omp critical
 				q.push(i);
 			}
 		}
@@ -150,6 +154,7 @@ namespace helper {
 std::vector<float> gridToVector(const Grid2D<float> &g) {
 	int W = g.width(), H = g.height();
 	std::vector<float> v((size_t)W * H);
+#pragma omp parallel for collapse(2) schedule(static)
 	for (int y = 0; y < H; ++y)
 		for (int x = 0; x < W; ++x) v[(size_t)y * W + x] = g(x, y);
 	return v;
@@ -157,12 +162,14 @@ std::vector<float> gridToVector(const Grid2D<float> &g) {
 
 void vectorToGrid(const std::vector<float> &v, Grid2D<float> &g) {
 	int W = g.width(), H = g.height();
+#pragma omp parallel for collapse(2) schedule(static)
 	for (int y = 0; y < H; ++y)
 		for (int x = 0; x < W; ++x) g(x, y) = v[(size_t)y * W + x];
 }
 
 std::vector<unsigned char> maskToRGB(const std::vector<uint8_t> &mask, int W, int H) {
 	std::vector<unsigned char> out((size_t)W * H * 3);
+#pragma omp parallel for collapse(2) schedule(static)
 	for (int y = 0; y < H; ++y)
 		for (int x = 0; x < W; ++x) {
 			size_t i = (size_t)y * W + x;
@@ -187,6 +194,7 @@ bool writePPM(const std::string &path, int W, int H, const std::vector<unsigned 
 std::vector<unsigned char> heightToRGB(const Grid2D<float> &g) {
 	int W = g.width(), H = g.height();
 	std::vector<unsigned char> out((size_t)W * H * 3);
+#pragma omp parallel for collapse(2) schedule(static)
 	for (int y = 0; y < H; ++y)
 		for (int x = 0; x < W; ++x) {
 			float v = g(x, y);
@@ -238,6 +246,7 @@ std::vector<unsigned char> biomeToRGB(const Grid2D<Biome> &g) {
 				return {255, 0, 255};
 		}
 	};
+#pragma omp parallel for collapse(2) schedule(static)
 	for (int y = 0; y < H; ++y)
 		for (int x = 0; x < W; ++x) {
 			auto c = colorOf(g(x, y));

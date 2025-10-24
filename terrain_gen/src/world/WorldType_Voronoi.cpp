@@ -21,9 +21,12 @@ WorldType_Voronoi::WorldType_Voronoi(int width, int height, const VoronoiConfig&
 
 void WorldType_Voronoi::initPlates() {
 	plates_.clear();
+	plates_.resize(cfg_.numPlates);
 	int s = (int)cfg_.seed;
-	rng_util::RNG rng(s);
+	
+#pragma omp parallel for schedule(static)
 	for (int i = 0; i < cfg_.numPlates; ++i) {
+		rng_util::RNG rng(s + i); // Different seed per thread
 		VoronoiPlate p;
 		p.id = i;
 		p.seed = (int)rng.nextInt();
@@ -31,7 +34,7 @@ void WorldType_Voronoi::initPlates() {
 		p.y = rng.nextFloat() * (float)height_;
 		p.height = (rng.nextFloat() * 2.0f - 1.0f) * 0.6f;
 		p.scale = 0.5f + rng.nextFloat() * 1.5f;
-		plates_.push_back(p);
+		plates_[i] = p;
 	}
 }
 
