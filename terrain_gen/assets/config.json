@@ -1,7 +1,7 @@
 {
-    "seed": 424242,
+    "seed": 14355,
     "width": 256,
-    "height": 256,
+    "height": 2048,
     "worldType": "Voronoi",
     "numPlates": 36,
     "fbmBlend": 0.42,

@@ -1,0 +1,17 @@
+{
+  "peak_memory_kb": 326569.3333333333,
+  "resolution": "2048x2048",
+  "run_id": 1,
+  "stage_times": {
+    "biome_classification": 6.166242,
+    "heightmap_and_voronoi": 0.24869433333333332,
+    "hydraulic_erosion": 74.007076,
+    "object_placement": 0.21963066666666667,
+    "river_generation": 0.5060436666666667
+  },
+  "threads": 4,
+  "total_time": 81.16119866666666,
+  "wall_clock_time": 84.20489923159282,
+  "num_runs": 3,
+  "std_dev_total_time": 3.9243593519809457
+}

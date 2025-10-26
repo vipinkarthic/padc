@@ -29,6 +29,8 @@
 using json = nlohmann::json;
 
 int main(int argc, char** argv) {
+	float start_time = static_cast<float>(std::clock()) / CLOCKS_PER_SEC;
+
 	char cwdBuf[4096];
 	if (_getcwd(cwdBuf, sizeof(cwdBuf)) != nullptr) {
 		std::cerr << "[DEBUG] CWD = " << cwdBuf << std::endl;
@@ -288,6 +290,9 @@ int main(int argc, char** argv) {
 	auto bRGB = helper::biomeToRGB(biomeMap);
 	if (!helper::writePPM("out/height.ppm", W, H, hRGB)) std::cerr << "Failed write height\n";
 	if (!helper::writePPM("out/biome.ppm", W, H, bRGB)) std::cerr << "Failed write biome\n";
+
+	float end_time = static_cast<float>(std::clock()) / CLOCKS_PER_SEC;
+	std::cout << "Total time: " << (end_time - start_time) << " seconds\n";
 
 	return 0;
 }
