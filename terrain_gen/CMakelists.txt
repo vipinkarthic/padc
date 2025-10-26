@@ -22,33 +22,21 @@ set(DEPS_DIR ${CMAKE_SOURCE_DIR}/deps)
 
 include_directories(${DEPS_DIR} ${CMAKE_SOURCE_DIR}/src)
 
-file(GLOB_RECURSE SRC_FILES
-  ${CMAKE_SOURCE_DIR}/src/*.cpp
-  ${CMAKE_SOURCE_DIR}/src/*.c
-  ${CMAKE_SOURCE_DIR}/src/*.h
-  ${CMAKE_SOURCE_DIR}/src/*.hpp
-)
+file(GLOB_RECURSE SRC_FILES ${CMAKE_SOURCE_DIR}/src/*.cpp ${CMAKE_SOURCE_DIR}/src/*.c ${CMAKE_SOURCE_DIR}/src/*.h ${CMAKE_SOURCE_DIR}/src/*.hpp)
 
-# Remove benchmark_main.cpp from main executable sources
-list(REMOVE_ITEM SRC_FILES ${CMAKE_SOURCE_DIR}/src/benchmark_main.cpp)
 
 list(LENGTH SRC_FILES SRC_COUNT)
 message(STATUS "Found ${SRC_COUNT} source files")
 
-# Main terrain generation executable
 add_executable(terrain-gen ${SRC_FILES})
 target_include_directories(terrain-gen PUBLIC ${DEPS_DIR} ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/biome ${CMAKE_SOURCE_DIR}/src/core ${CMAKE_SOURCE_DIR}/src/erosion ${CMAKE_SOURCE_DIR}/src/noise ${CMAKE_SOURCE_DIR}/src/utils ${CMAKE_SOURCE_DIR}/src/world ${CMAKE_SOURCE_DIR}/src/river ${CMAKE_SOURCE_DIR}/src/image ${CMAKE_SOURCE_DIR}/src/objects) 
 
-# Benchmark executable
-add_executable(terrain-gen-benchmark src/benchmark_main.cpp src/erosion/HydraulicErosion.cpp src/io/ImageWriter.cpp src/objects/ObjectPlacer.cpp src/river/RiverGenerator.cpp src/utils/util.cpp src/world/WorldType_Voronoi.cpp)
-target_include_directories(terrain-gen-benchmark PUBLIC ${DEPS_DIR} ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/biome ${CMAKE_SOURCE_DIR}/src/core ${CMAKE_SOURCE_DIR}/src/erosion ${CMAKE_SOURCE_DIR}/src/noise ${CMAKE_SOURCE_DIR}/src/utils ${CMAKE_SOURCE_DIR}/src/world ${CMAKE_SOURCE_DIR}/src/river ${CMAKE_SOURCE_DIR}/src/image ${CMAKE_SOURCE_DIR}/src/objects)
 
 if(ENABLE_OPENMP)
   find_package(OpenMP)
   if(OpenMP_CXX_FOUND)
     message(STATUS "OpenMP found, enabling")
     target_link_libraries(terrain-gen PUBLIC OpenMP::OpenMP_CXX)
-    target_link_libraries(terrain-gen-benchmark PUBLIC OpenMP::OpenMP_CXX)
   else()
     message(STATUS "OpenMP not found — continuing without it")
   endif()
@@ -56,14 +44,6 @@ endif()
 
 set_target_properties(terrain-gen PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-)
-
-set_target_properties(terrain-gen-benchmark PROPERTIES
-  RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-)
-
-install(TARGETS terrain-gen terrain-gen-benchmark
-  RUNTIME DESTINATION bin
 )
 
 message(STATUS "Project: ${PROJECT_NAME} v${PROJECT_VERSION}")
