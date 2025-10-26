@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 project(terrain-gen VERSION 0.1 LANGUAGES CXX)
 
-option(BUILD_TESTS "Build unit tests" ON)
 option(ENABLE_OPENMP "Link OpenMP if available" ON)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -24,13 +23,11 @@ include_directories(${DEPS_DIR} ${CMAKE_SOURCE_DIR}/src)
 
 file(GLOB_RECURSE SRC_FILES ${CMAKE_SOURCE_DIR}/src/*.cpp ${CMAKE_SOURCE_DIR}/src/*.c ${CMAKE_SOURCE_DIR}/src/*.h ${CMAKE_SOURCE_DIR}/src/*.hpp)
 
-
 list(LENGTH SRC_FILES SRC_COUNT)
 message(STATUS "Found ${SRC_COUNT} source files")
 
 add_executable(terrain-gen ${SRC_FILES})
-target_include_directories(terrain-gen PUBLIC ${DEPS_DIR} ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/biome ${CMAKE_SOURCE_DIR}/src/core ${CMAKE_SOURCE_DIR}/src/erosion ${CMAKE_SOURCE_DIR}/src/noise ${CMAKE_SOURCE_DIR}/src/utils ${CMAKE_SOURCE_DIR}/src/world ${CMAKE_SOURCE_DIR}/src/river ${CMAKE_SOURCE_DIR}/src/image ${CMAKE_SOURCE_DIR}/src/objects) 
-
+target_include_directories(terrain-gen PUBLIC ${DEPS_DIR} ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/biome ${CMAKE_SOURCE_DIR}/src/core ${CMAKE_SOURCE_DIR}/src/erosion ${CMAKE_SOURCE_DIR}/src/noise ${CMAKE_SOURCE_DIR}/src/utils ${CMAKE_SOURCE_DIR}/src/world ${CMAKE_SOURCE_DIR}/src/river ${CMAKE_SOURCE_DIR}/src/image) 
 
 if(ENABLE_OPENMP)
   find_package(OpenMP)
@@ -38,7 +35,7 @@ if(ENABLE_OPENMP)
     message(STATUS "OpenMP found, enabling")
     target_link_libraries(terrain-gen PUBLIC OpenMP::OpenMP_CXX)
   else()
-    message(STATUS "OpenMP not found — continuing without it")
+    message(STATUS "OpenMP not found")
   endif()
 endif()
 

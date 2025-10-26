@@ -118,7 +118,7 @@ ErosionStats runHydraulicErosion(GridFloat &heightGrid, const ErosionParams &par
 		float water = params.initWater;
 		float sediment = 0.0f;
 
-		for (int step = 0; step < maxSteps; ++step) {
+		for (int i = 0; i < maxSteps; ++i) {
 			float heightHere, gradX, gradY;
 			sampleHeightAndGradient(heightGrid, x, y, heightHere, gradX, gradY);
 

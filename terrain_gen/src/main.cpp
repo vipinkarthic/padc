@@ -1,12 +1,9 @@
-#include <filesystem>
-#ifdef _WIN32
 #include <direct.h>
-#else
-#include <unistd.h>
-#endif
+
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -18,7 +15,6 @@
 #include "BiomeSystem.h"
 #include "ErosionParams.h"
 #include "HydraulicErosion.h"
-#include "ObjectPlacer.h"
 #include "PerlinNoise.h"
 #include "RiverGenerator.h"
 #include "Types.h"
@@ -28,7 +24,7 @@
 
 using json = nlohmann::json;
 
-int main(int argc, char** argv) {
+int main() {
 	float start_time = static_cast<float>(std::clock()) / CLOCKS_PER_SEC;
 
 	char cwdBuf[4096];
@@ -39,7 +35,7 @@ int main(int argc, char** argv) {
 	}
 	std::cout << "CWD: " << std::filesystem::current_path() << std::endl;
 
-	std::string cfgRelPath = "../../assets/config.json";
+	std::string cfgRelPath = "config.json";
 	std::filesystem::path absCfg = std::filesystem::absolute(cfgRelPath);
 
 	std::ifstream f(absCfg.string());
@@ -119,7 +115,7 @@ int main(int argc, char** argv) {
 		}
 
 	std::vector<BiomeDef> defs;
-	std::ifstream bf("../../assets/biomes.json");
+	std::ifstream bf("biomes.json");
 	if (bf) {
 		json bj;
 		bf >> bj;
@@ -149,7 +145,7 @@ int main(int argc, char** argv) {
 	// -----------------------------
 	ErosionParams eparams;
 	eparams.worldSeed = seed;
-	eparams.numDroplets = std::max(1000, (int)(0.4f * W * H));
+	eparams.numDroplets = std::max(1000, (int)(.4f * W * H));
 	eparams.maxSteps = 45;
 	eparams.stepSize = 1.0f;
 	eparams.capacityFactor = 8.0f;
@@ -216,71 +212,6 @@ int main(int argc, char** argv) {
 	} else {
 		auto bRGB_after_rivers = helper::biomeToRGB(biomeMap);
 		if (!helper::writePPM("out/biome_after_rivers.ppm", W, H, bRGB_after_rivers)) std::cerr << "Failed write out/biome_after_rivers.ppm\n";
-	}
-
-	// -----------------------------
-	// Map utils + Object placement
-	// -----------------------------
-	std::vector<float> slope;
-	map::computeSlopeMap(helper::gridToVector(height), W, H, slope);  // helper computes using a linear array
-
-	std::vector<unsigned char> waterMask;
-	float oceanThreshold = cfg.value("oceanHeightThreshold", 0.35f);
-	float lakeThreshold = cfg.value("lakeHeightThreshold", 0.45f);
-	map::computeWaterMask(helper::gridToVector(height), W, H, oceanThreshold, lakeThreshold, waterMask);
-
-	std::vector<int> coastDist;
-	map::computeCoastDistance(waterMask, W, H, coastDist);
-
-	std::unordered_map<std::string, int> biomeIdToIndex;
-	for (size_t i = 0; i < defs.size(); ++i) {
-		std::string idStr = biomeToString(defs[i].id);
-		biomeIdToIndex.insert_or_assign(idStr, (int)i);
-	}
-
-	std::vector<int> biome_idx((size_t)W * H, -1);
-#pragma omp parallel for collapse(2) schedule(static)
-	for (int y = 0; y < H; ++y) {
-		for (int x = 0; x < W; ++x) {
-			int i = y * W + x;
-			std::string id = biomeToString(biomeMap(x, y));	 // convert enum to string
-			auto it = biomeIdToIndex.find(id);
-			if (it != biomeIdToIndex.end())
-				biome_idx[i] = it->second;
-			else
-				biome_idx[i] = -1;
-		}
-	}
-
-	std::filesystem::path placementPath = std::filesystem::absolute("../../assets/object_placement.json");
-	if (!std::filesystem::exists(placementPath)) {
-		std::cerr << "[WARN] object_placement.json not found at " << placementPath.string() << " — skipping object placement\n";
-	} else {
-		std::ifstream pf(placementPath.string());
-		json placeCfg;
-		try {
-			pf >> placeCfg;
-		} catch (const std::exception& e) {
-			std::cerr << "[ERROR] Failed to parse object_placement.json: " << e.what() << std::endl;
-		}
-		pf.close();
-
-		ObjectPlacer placer(W, H, (float)W);
-		placer.loadPlacementConfig(placeCfg);
-
-		std::vector<std::string> biomeIds;
-		biomeIds.reserve(defs.size());
-		for (auto& d : defs) {
-			biomeIds.push_back(biomeToString(d.id));
-		}
-		placer.setBiomeIdList(biomeIds);
-
-		std::vector<float> heightLinear = helper::gridToVector(height);
-
-		placer.place(heightLinear, slope, waterMask, coastDist, biome_idx);
-
-		placer.writeCSV("out/objects.csv");
-		placer.writeDebugPPM("out/objects_map.ppm");
 	}
 
 	// -----------------------------

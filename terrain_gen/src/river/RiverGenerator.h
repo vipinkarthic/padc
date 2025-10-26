@@ -16,18 +16,12 @@ struct RiverParams {
 
 class RiverGenerator {
    public:
-	// height: row-major W*H floats (elevation units)
-	// biome: optional (same size) - not required; pass empty vector if unused
 	RiverGenerator(int width, int height, const std::vector<float>& heightmap, const std::vector<int>& biome_map = {});
 
-	// runs algorithm and modifies internal heightmap in-place
 	void run(const RiverParams& params);
 
-	// get results
 	const std::vector<uint8_t>& getRiverMask() const;  // 0 or 255
 	const std::vector<float>& getHeightmap() const;
-
-	// write river map to PNG (implement ImageWriter in your project)
 	void writeRiverPNG(const std::string& path) const;
 
    private:
