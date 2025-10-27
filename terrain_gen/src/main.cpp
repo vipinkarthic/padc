@@ -1,5 +1,3 @@
-#include <direct.h>
-
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
@@ -26,15 +24,6 @@ using json = nlohmann::json;
 
 int main() {
 	float start_time = static_cast<float>(std::clock()) / CLOCKS_PER_SEC;
-
-	char cwdBuf[4096];
-	if (_getcwd(cwdBuf, sizeof(cwdBuf)) != nullptr) {
-		std::cerr << "[DEBUG] CWD = " << cwdBuf << std::endl;
-	} else {
-		std::cerr << "[DEBUG] CWD unknown" << std::endl;
-	}
-	std::cout << "CWD: " << std::filesystem::current_path() << std::endl;
-
 	std::string cfgRelPath = "config.json";
 	std::filesystem::path absCfg = std::filesystem::absolute(cfgRelPath);
 
@@ -52,7 +41,7 @@ int main() {
 	}
 	f.close();
 
-	for (auto it = cfg.begin(); it != cfg.end(); ++it) std::cerr << it.key() << " ";
+	for (auto it = cfg.begin(); it != cfg.end(); it++) std::cerr << it.key() << " ";
 
 	int W = cfg.value("width", 512);
 	int H = cfg.value("height", 512);
@@ -97,8 +86,8 @@ int main() {
 	float baseFreq = 0.0025f;
 
 #pragma omp parallel for collapse(2) schedule(static)
-	for (int y = 0; y < H; ++y)
-		for (int x = 0; x < W; ++x) {
+	for (int y = 0; y < H; y++)
+		for (int x = 0; x < W; x++) {
 			float e = height(x, y);
 			float fx = (float)x;
 			float fy = (float)y;

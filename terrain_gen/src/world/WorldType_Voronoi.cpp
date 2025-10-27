@@ -16,7 +16,7 @@ void WorldType_Voronoi::initPlates() {
 	int s = (int)cfg_.seed;
 
 #pragma omp parallel for schedule(static)
-	for (int i = 0; i < cfg_.numPlates; ++i) {
+	for (int i = 0; i < cfg_.numPlates; i++) {
 		rng_util::RNG rng(s + i);  // Different seed per thread
 		VoronoiPlate p;
 		p.id = i;
@@ -63,8 +63,8 @@ float WorldType_Voronoi::voronoiHeightAt(int ix, int iy) const {
 void WorldType_Voronoi::generate(Grid2D<float>& outHeight) {
 	assert(outHeight.width() == width_ && outHeight.height() == height_);
 #pragma omp parallel for collapse(2)
-	for (int y = 0; y < height_; ++y) {
-		for (int x = 0; x < width_; ++x) {
+	for (int y = 0; y < height_; y++) {
+		for (int x = 0; x < width_; x++) {
 			float vor = voronoiHeightAt(x, y);			 // -1..1
 			float fbm = fbmNoiseAt((float)x, (float)y);	 // -1..1
 			float h = (1.0f - cfg_.fbmBlend) * vor + cfg_.fbmBlend * fbm;

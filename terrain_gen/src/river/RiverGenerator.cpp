@@ -3,6 +3,7 @@
 #include <omp.h>
 
 #include <algorithm>
+#include <climits>
 #include <cmath>
 #include <cstdint>
 #include <numeric>
@@ -31,13 +32,13 @@ void RiverGenerator::computeFlowDirection() {
 	const float diagDist = std::sqrt(2.0f);
 
 #pragma omp parallel for schedule(static)
-	for (int y = 0; y < H; ++y) {
-		for (int x = 0; x < W; ++x) {
+	for (int y = 0; y < H; y++) {
+		for (int x = 0; x < W; x++) {
 			int i = idx(x, y);
 			float h = Hmap[i];
 			int best_n = -1;
 			float best_drop = 0.0f;
-			for (int k = 0; k < 8; ++k) {
+			for (int k = 0; k < 8; k++) {
 				int nx = x + dx[k];
 				int ny = y + dy[k];
 				if (nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
@@ -59,12 +60,12 @@ void RiverGenerator::computeFlowAccumulation() {
 	int N = W * H;
 	std::vector<int> order(N);
 #pragma omp parallel for schedule(static)
-	for (int i = 0; i < N; ++i) order[i] = i;
+	for (int i = 0; i < N; i++) order[i] = i;
 	std::sort(order.begin(), order.end(), [&](int a, int b) { return Hmap[a] > Hmap[b]; });
 
 	std::fill(FlowAccum.begin(), FlowAccum.end(), 1.0f);
 
-	for (int id = 0; id < N; ++id) {
+	for (int id = 0; id < N; id++) {
 		int i = order[id];
 		int d = FlowDir[i];
 		if (d != -1) {
@@ -76,7 +77,7 @@ void RiverGenerator::computeFlowAccumulation() {
 void RiverGenerator::extractRivers(const RiverParams& params) {
 	int N = W * H;
 #pragma omp parallel for schedule(static)
-	for (int i = 0; i < N; ++i) {
+	for (int i = 0; i < N; i++) {
 		RiverMask[i] = (FlowAccum[i] >= params.flow_accum_threshold) ? 255 : 0;
 	}
 }
@@ -88,7 +89,7 @@ void RiverGenerator::carveRivers(const RiverParams& params) {
 	std::vector<int> dist(N, INT_MAX);
 	std::queue<int> q;
 #pragma omp parallel for schedule(static)
-	for (int i = 0; i < N; ++i) {
+	for (int i = 0; i < N; i++) {
 		if (RiverMask[i]) {
 			dist[i] = 0;
 #pragma omp critical
@@ -100,7 +101,7 @@ void RiverGenerator::carveRivers(const RiverParams& params) {
 		q.pop();
 		int cx = cur % W;
 		int cy = cur / W;
-		for (int k = 0; k < 4; ++k) {
+		for (int k = 0; k < 4; k++) {
 			int nx = cx + dx[k];
 			int ny = cy + dy[k];
 			if (nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
@@ -113,7 +114,7 @@ void RiverGenerator::carveRivers(const RiverParams& params) {
 	}
 
 #pragma omp parallel for schedule(static)
-	for (int i = 0; i < N; ++i) {
+	for (int i = 0; i < N; i++) {
 		if (dist[i] == INT_MAX) continue;
 		float flow_here = FlowAccum[i];
 		double width = params.width_multiplier * std::sqrt(std::max(1.0f, flow_here));

@@ -53,8 +53,8 @@ class Grid2D {
 	template <typename Fn>
 	void forEach(Fn&& fn) {
 #pragma omp parallel for collapse(2) schedule(static)
-		for (int y = 0; y < h_; ++y) {
-			for (int x = 0; x < w_; ++x) {
+		for (int y = 0; y < h_; y++) {
+			for (int x = 0; x < w_; x++) {
 				fn(x, y, data_[(size_t)y * (size_t)w_ + (size_t)x]);
 			}
 		}
@@ -83,8 +83,8 @@ template <typename T, typename Fn>
 static Grid2D<T> makeGridFromFn(int width, int height, Fn&& f) {
 	Grid2D<T> g(width, height);
 #pragma omp parallel for collapse(2) schedule(static)
-	for (int y = 0; y < height; ++y) {
-		for (int x = 0; x < width; ++x) {
+	for (int y = 0; y < height; y++) {
+		for (int x = 0; x < width; x++) {
 			g(x, y) = f(x, y);
 		}
 	}

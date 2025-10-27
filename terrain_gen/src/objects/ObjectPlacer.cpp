@@ -135,7 +135,7 @@ bool ObjectPlacer::attemptPlace(int x, int y, const OPlaceDef &od, const std::ve
 	} else {
 		// attempt up to N small trials to approximate expected count
 		int trials = std::max(1, (int)std::ceil(p * 10.0f));  // scale
-		for (int t = 0; t < trials; ++t) {
+		for (int t = 0; t < trials; t++) {
 			if (rand01_from(cellSeed) <= p) {
 				success = true;
 				break;
@@ -196,7 +196,7 @@ bool ObjectPlacer::attemptPlace(int x, int y, const OPlaceDef &od, const std::ve
 		std::vector<uint64_t> clusterSeeds(od.cluster_count);
 
 #pragma omp parallel for schedule(static)
-		for (int c = 0; c < od.cluster_count; ++c) {
+		for (int c = 0; c < od.cluster_count; c++) {
 			uint64_t clusterSeed = (uint64_t)createdId * 1009 + c * 7919 + seed;
 			float ang = rand01_from(clusterSeed) * 6.28318530718f;
 			float rad = rand01_from(clusterSeed) * od.cluster_radius;
@@ -210,7 +210,7 @@ bool ObjectPlacer::attemptPlace(int x, int y, const OPlaceDef &od, const std::ve
 		}
 
 		// Place cluster objects sequentially to avoid race conditions
-		for (int c = 0; c < od.cluster_count; ++c) {
+		for (int c = 0; c < od.cluster_count; c++) {
 			int px = clusterPositions[c].first;
 			int py = clusterPositions[c].second;
 			if (px >= 0 && py >= 0 && px < W && py < H) {
@@ -235,11 +235,11 @@ void ObjectPlacer::place(const std::vector<float> &height, const std::vector<flo
 	uint64_t baseSeed = seed;
 // iterate raster
 #pragma omp parallel for schedule(dynamic)
-	for (int y = 0; y < H; ++y) {
+	for (int y = 0; y < H; y++) {
 		// quick early-skip by rows if already reached (cheap atomic read)
 		if (placedCount.load(std::memory_order_relaxed) >= globalMax) continue;
 
-		for (int x = 0; x < W; ++x) {
+		for (int x = 0; x < W; x++) {
 			// global limit check before per-cell work
 			if (placedCount.load(std::memory_order_relaxed) >= globalMax) break;  // break inner loop (safe inside thread)
 
@@ -286,7 +286,7 @@ void ObjectPlacer::writeCSV(const std::string &path) const {
 	// Collect all lines in parallel
 	std::vector<std::string> lines(placed.size());
 #pragma omp parallel for schedule(static)
-	for (size_t i = 0; i < placed.size(); ++i) {
+	for (size_t i = 0; i < placed.size(); i++) {
 		const auto &it = placed[i];
 		std::string modelToWrite = it.model.empty() ? std::string("PLACEHOLDER:") + it.name : it.model;
 		lines[i] = std::to_string(it.id) + "," + it.name + "," + modelToWrite + "," + std::to_string(it.px) + "," + std::to_string(it.py) + "," +
@@ -306,7 +306,7 @@ void ObjectPlacer::writeDebugPPM(const std::string &path) const {
 
 	// Parallelize object placement in image
 #pragma omp parallel for schedule(static)
-	for (size_t i = 0; i < placed.size(); ++i) {
+	for (size_t i = 0; i < placed.size(); i++) {
 		const auto &it = placed[i];
 		int x = it.px, y = it.py;
 		if (x < 0 || y < 0 || x >= W || y >= H) continue;

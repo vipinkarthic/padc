@@ -96,14 +96,14 @@ ErosionStats runHydraulicErosion(GridFloat &heightGrid, const ErosionParams &par
 	depositBufs.resize(numThreads);
 	const size_t nCells = (size_t)W * (size_t)H;
 
-	for (int t = 0; t < numThreads; ++t) {
+	for (int t = 0; t < numThreads; t++) {
 		erodeBufs[t].assign(nCells, 0.0);
 		depositBufs[t].assign(nCells, 0.0);
 	}
 	std::cerr << "[ERODE DEBUG] entering droplet loop (parallel) ..." << std::endl;
 
 #pragma omp parallel for schedule(static)
-	for (int di = 0; di < N; ++di) {
+	for (int di = 0; di < N; di++) {
 		int tid = omp_get_thread_num();
 		ll seedState = params.worldSeed;
 		ll localState = seedState ^ (ll)di * 2654435761LL;
@@ -118,7 +118,7 @@ ErosionStats runHydraulicErosion(GridFloat &heightGrid, const ErosionParams &par
 		float water = params.initWater;
 		float sediment = 0.0f;
 
-		for (int i = 0; i < maxSteps; ++i) {
+		for (int i = 0; i < maxSteps; i++) {
 			float heightHere, gradX, gradY;
 			sampleHeightAndGradient(heightGrid, x, y, heightHere, gradX, gradY);
 
@@ -179,18 +179,18 @@ ErosionStats runHydraulicErosion(GridFloat &heightGrid, const ErosionParams &par
 	ErosionStats stats;
 	vector<double> finalErode(nCells, 0.0), finalDeposit(nCells, 0.0);
 #pragma omp parallel for schedule(static)
-	for (int t = 0; t < numThreads; ++t) {
+	for (int t = 0; t < numThreads; t++) {
 		const auto &eb = erodeBufs[t];
 		const auto &db = depositBufs[t];
-		for (size_t i = 0; i < nCells; ++i) {
+		for (size_t i = 0; i < nCells; i++) {
 			finalErode[i] += eb[i];
 			finalDeposit[i] += db[i];
 		}
 	}
 
 #pragma omp parallel for collapse(2) schedule(static)
-	for (int y = 0; y < H; ++y) {
-		for (int x = 0; x < W; ++x) {
+	for (int y = 0; y < H; y++) {
+		for (int x = 0; x < W; x++) {
 			size_t idx = (size_t)y * W + x;
 			double delta = finalDeposit[idx] - finalErode[idx];
 			stats.totalEroded += finalErode[idx];
@@ -204,14 +204,14 @@ ErosionStats runHydraulicErosion(GridFloat &heightGrid, const ErosionParams &par
 	if (outEroded) {
 		outEroded->resize(W, H);
 #pragma omp parallel for collapse(2) schedule(static)
-		for (int y = 0; y < H; ++y)
-			for (int x = 0; x < W; ++x) (*outEroded)(x, y) = (float)finalErode[(size_t)y * W + x];
+		for (int y = 0; y < H; y++)
+			for (int x = 0; x < W; x++) (*outEroded)(x, y) = (float)finalErode[(size_t)y * W + x];
 	}
 	if (outDeposited) {
 		outDeposited->resize(W, H);
 #pragma omp parallel for collapse(2) schedule(static)
-		for (int y = 0; y < H; ++y)
-			for (int x = 0; x < W; ++x) (*outDeposited)(x, y) = (float)finalDeposit[(size_t)y * W + x];
+		for (int y = 0; y < H; y++)
+			for (int x = 0; x < W; x++) (*outDeposited)(x, y) = (float)finalDeposit[(size_t)y * W + x];
 	}
 
 	stats.appliedDroplets = N;
