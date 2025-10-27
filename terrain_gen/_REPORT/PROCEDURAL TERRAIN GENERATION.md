@@ -2029,13 +2029,18 @@ Output:
 + Refer to section 4.2
 ###### 8.2.1 Heightmap Generation
 ```cpp
+WorldType_Voronoi::WorldType_Voronoi(int width, int height, const VoronoiConfig& cfg) : width_(width), height_(height), cfg_(cfg) {
+	noise_.init(cfg.seed + 12345);
+	initPlates();
+}
+
 void WorldType_Voronoi::initPlates() {
 	plates_.clear();
 	plates_.resize(cfg_.numPlates);
 	int s = (int)cfg_.seed;
 
 #pragma omp parallel for schedule(static)
-	for (int i = 0; i < cfg_.numPlates; ++i) {
+	for (int i = 0; i < cfg_.numPlates; i++) {
 		rng_util::RNG rng(s + i);  // Different seed per thread
 		VoronoiPlate p;
 		p.id = i;
@@ -2047,15 +2052,20 @@ void WorldType_Voronoi::initPlates() {
 		plates_[i] = p;
 	}
 }
-#pragma omp parallel for collapse(2) schedule(static)
-for (int y = 0; y < H; ++y) {
-    for (int x = 0; x < W; ++x) {
-        float vor = voronoiHeightAt(x, y);
-        float fbm = fbmNoiseAt((float)x, (float)y);
-        float h = (1.0f - cfg.fbmBlend) * vor + cfg.fbmBlend * fbm;
-        h = std::tanh(h * 1.2f);
-        height(x, y) = (h + 1.0f) * 0.5f;
-    }
+
+void WorldType_Voronoi::generate(Grid2D<float>& outHeight) {
+	assert(outHeight.width() == width_ && outHeight.height() == height_);
+	#pragma omp parallel for collapse(2)
+	for (int y = 0; y < height_; y++) {
+		for (int x = 0; x < width_; x++) {
+			float vor = voronoiHeightAt(x, y);			 // -1..1
+			float fbm = fbmNoiseAt((float)x, (float)y);	 // -1..1
+			float h = (1.0f - cfg_.fbmBlend) * vor + cfg_.fbmBlend * fbm;
+			h = std::tanh(h * 1.2f);
+			float mapped = (h + 1.0f) * 0.5f;
+			outHeight(x, y) = mapped;
+		}
+	}
 }
 ```
 ###### 8.2.2 Hydraulic Erosion
@@ -2073,13 +2083,14 @@ ErosionStats runHydraulicErosion(GridFloat &heightGrid, const ErosionParams &par
 	depositBufs.resize(numThreads);
 	const size_t nCells = (size_t)W * (size_t)H;
 
-	for (int t = 0; t < numThreads; ++t) {
+	for (int t = 0; t < numThreads; t++) {
 		erodeBufs[t].assign(nCells, 0.0);
 		depositBufs[t].assign(nCells, 0.0);
 	}
+	std::cerr << "[ERODE DEBUG] entering droplet loop (parallel) ..." << std::endl;
 
 #pragma omp parallel for schedule(static)
-	for (int di = 0; di < N; ++di) {
+	for (int di = 0; di < N; di++) {
 		int tid = omp_get_thread_num();
 		ll seedState = params.worldSeed;
 		ll localState = seedState ^ (ll)di * 2654435761LL;
@@ -2094,11 +2105,11 @@ ErosionStats runHydraulicErosion(GridFloat &heightGrid, const ErosionParams &par
 		float water = params.initWater;
 		float sediment = 0.0f;
 
-		for (int step = 0; step < maxSteps; ++step) {
+		for (int i = 0; i < maxSteps; i++) {
 			float heightHere, gradX, gradY;
 			sampleHeightAndGradient(heightGrid, x, y, heightHere, gradX, gradY);
 
-			// update direction
+			// update direction: inertia + slope influence
 			dirX = dirX * params.inertia - gradX * (1.0f - params.inertia);
 			dirY = dirY * params.inertia - gradY * (1.0f - params.inertia);
 			float len = sqrtf(dirX * dirX + dirY * dirY);
@@ -2148,24 +2159,25 @@ ErosionStats runHydraulicErosion(GridFloat &heightGrid, const ErosionParams &par
 			water *= (1.0f - params.evaporateRate);
 			if (water < params.minWater) break;
 			if (speed < params.minSpeed) break;
+			std::cerr << "[ERODE DEBUG] droplet loop completed, starting reduction ..." << std::endl;
 		}
 	}
 
 	ErosionStats stats;
 	vector<double> finalErode(nCells, 0.0), finalDeposit(nCells, 0.0);
 #pragma omp parallel for schedule(static)
-	for (int t = 0; t < numThreads; ++t) {
+	for (int t = 0; t < numThreads; t++) {
 		const auto &eb = erodeBufs[t];
 		const auto &db = depositBufs[t];
-		for (size_t i = 0; i < nCells; ++i) {
+		for (size_t i = 0; i < nCells; i++) {
 			finalErode[i] += eb[i];
 			finalDeposit[i] += db[i];
 		}
 	}
 
 #pragma omp parallel for collapse(2) schedule(static)
-	for (int y = 0; y < H; ++y) {
-		for (int x = 0; x < W; ++x) {
+	for (int y = 0; y < H; y++) {
+		for (int x = 0; x < W; x++) {
 			size_t idx = (size_t)y * W + x;
 			double delta = finalDeposit[idx] - finalErode[idx];
 			stats.totalEroded += finalErode[idx];
@@ -2179,14 +2191,14 @@ ErosionStats runHydraulicErosion(GridFloat &heightGrid, const ErosionParams &par
 	if (outEroded) {
 		outEroded->resize(W, H);
 #pragma omp parallel for collapse(2) schedule(static)
-		for (int y = 0; y < H; ++y)
-			for (int x = 0; x < W; ++x) (*outEroded)(x, y) = (float)finalErode[(size_t)y * W + x];
+		for (int y = 0; y < H; y++)
+			for (int x = 0; x < W; x++) (*outEroded)(x, y) = (float)finalErode[(size_t)y * W + x];
 	}
 	if (outDeposited) {
 		outDeposited->resize(W, H);
 #pragma omp parallel for collapse(2) schedule(static)
-		for (int y = 0; y < H; ++y)
-			for (int x = 0; x < W; ++x) (*outDeposited)(x, y) = (float)finalDeposit[(size_t)y * W + x];
+		for (int y = 0; y < H; y++)
+			for (int x = 0; x < W; x++) (*outDeposited)(x, y) = (float)finalDeposit[(size_t)y * W + x];
 	}
 
 	stats.appliedDroplets = N;
@@ -2219,13 +2231,13 @@ void RiverGenerator::computeFlowDirection() {
 	const float diagDist = std::sqrt(2.0f);
 
 #pragma omp parallel for schedule(static)
-	for (int y = 0; y < H; ++y) {
-		for (int x = 0; x < W; ++x) {
+	for (int y = 0; y < H; y++) {
+		for (int x = 0; x < W; x++) {
 			int i = idx(x, y);
 			float h = Hmap[i];
 			int best_n = -1;
 			float best_drop = 0.0f;
-			for (int k = 0; k < 8; ++k) {
+			for (int k = 0; k < 8; k++) {
 				int nx = x + dx[k];
 				int ny = y + dy[k];
 				if (nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
@@ -2247,12 +2259,12 @@ void RiverGenerator::computeFlowAccumulation() {
 	int N = W * H;
 	std::vector<int> order(N);
 #pragma omp parallel for schedule(static)
-	for (int i = 0; i < N; ++i) order[i] = i;
+	for (int i = 0; i < N; i++) order[i] = i;
 	std::sort(order.begin(), order.end(), [&](int a, int b) { return Hmap[a] > Hmap[b]; });
 
 	std::fill(FlowAccum.begin(), FlowAccum.end(), 1.0f);
 
-	for (int id = 0; id < N; ++id) {
+	for (int id = 0; id < N; id++) {
 		int i = order[id];
 		int d = FlowDir[i];
 		if (d != -1) {
@@ -2264,7 +2276,7 @@ void RiverGenerator::computeFlowAccumulation() {
 void RiverGenerator::extractRivers(const RiverParams& params) {
 	int N = W * H;
 #pragma omp parallel for schedule(static)
-	for (int i = 0; i < N; ++i) {
+	for (int i = 0; i < N; i++) {
 		RiverMask[i] = (FlowAccum[i] >= params.flow_accum_threshold) ? 255 : 0;
 	}
 }
@@ -2276,7 +2288,7 @@ void RiverGenerator::carveRivers(const RiverParams& params) {
 	std::vector<int> dist(N, INT_MAX);
 	std::queue<int> q;
 #pragma omp parallel for schedule(static)
-	for (int i = 0; i < N; ++i) {
+	for (int i = 0; i < N; i++) {
 		if (RiverMask[i]) {
 			dist[i] = 0;
 #pragma omp critical
@@ -2288,7 +2300,7 @@ void RiverGenerator::carveRivers(const RiverParams& params) {
 		q.pop();
 		int cx = cur % W;
 		int cy = cur / W;
-		for (int k = 0; k < 4; ++k) {
+		for (int k = 0; k < 4; k++) {
 			int nx = cx + dx[k];
 			int ny = cy + dy[k];
 			if (nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
@@ -2301,7 +2313,7 @@ void RiverGenerator::carveRivers(const RiverParams& params) {
 	}
 
 #pragma omp parallel for schedule(static)
-	for (int i = 0; i < N; ++i) {
+	for (int i = 0; i < N; i++) {
 		if (dist[i] == INT_MAX) continue;
 		float flow_here = FlowAccum[i];
 		double width = params.width_multiplier * std::sqrt(std::max(1.0f, flow_here));
@@ -2320,7 +2332,6 @@ void RiverGenerator::carveRivers(const RiverParams& params) {
 ```
 ###### 8.2.4 Biome Classification and Object Placement
 ```cpp
-namespace biome {
 static inline bool classifyBiomeMap(const GridFloat& heightGrid, const GridFloat& tempGrid, const GridFloat& moistGrid, const GridInt* riverMaskGrid,
 									const std::vector<BiomeDef>& defs, GridBiome& outBiomeGrid, const ClassifierOptions& opts = ClassifierOptions()) {
 	const int W = heightGrid.width();
@@ -2333,8 +2344,8 @@ static inline bool classifyBiomeMap(const GridFloat& heightGrid, const GridFloat
 	std::vector<int> oceanMask(W * H, 0);
 	std::vector<int> lakeMask(W * H, 0);
 #pragma omp parallel for collapse(2) schedule(static)
-	for (int y = 0; y < H; ++y) {
-		for (int x = 0; x < W; ++x) {
+	for (int y = 0; y < H; y++) {
+		for (int x = 0; x < W; x++) {
 			float e = heightGrid(x, y);
 			int idx = y * W + x;
 			if (e < opts.oceanHeightThreshold)
@@ -2347,8 +2358,8 @@ static inline bool classifyBiomeMap(const GridFloat& heightGrid, const GridFloat
 	std::vector<int> riverMask(W * H, 0);
 	if (riverMaskGrid) {
 #pragma omp parallel for collapse(2) schedule(static)
-		for (int y = 0; y < H; ++y)
-			for (int x = 0; x < W; ++x) riverMask[y * W + x] = ((*riverMaskGrid)(x, y) ? 1 : 0);
+		for (int y = 0; y < H; y++)
+			for (int x = 0; x < W; x++) riverMask[y * W + x] = ((*riverMaskGrid)(x, y) ? 1 : 0);
 	}
 
 	std::vector<int> nearCoast(W * H, 0), nearRiver(W * H, 0);
@@ -2360,8 +2371,8 @@ static inline bool classifyBiomeMap(const GridFloat& heightGrid, const GridFloat
 
 	std::vector<Biome> chosen(W * H, Biome::Unknown);
 #pragma omp parallel for collapse(2)
-	for (int y = 0; y < H; ++y) {
-		for (int x = 0; x < W; ++x) {
+	for (int y = 0; y < H; y++) {
+		for (int x = 0; x < W; x++) {
 			int idx = y * W + x;
 			float e = heightGrid(x, y);
 			float t = tempGrid(x, y);
@@ -2379,8 +2390,8 @@ static inline bool classifyBiomeMap(const GridFloat& heightGrid, const GridFloat
 	}
 
 #pragma omp parallel for collapse(2) schedule(static)
-	for (int y = 0; y < H; ++y) {
-		for (int x = 0; x < W; ++x) {
+	for (int y = 0; y < H; y++) {
+		for (int x = 0; x < W; x++) {
 			outBiomeGrid(x, y) = chosen[y * W + x];
 		}
 	}
